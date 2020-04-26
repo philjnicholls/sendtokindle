@@ -56,7 +56,7 @@ def send_page_to_kindle():
             del tag
         # TODO Strip attributes
 
-    title = soup.find('title').text
+    title = soup.title.string
 
     '''
     Try to get a main HTML element which should have the
@@ -89,7 +89,7 @@ def send_page_to_kindle():
         main = soup.find(
             path['element'],
             class_=path['class'] if 'class' in path else None,
-            id_=path['id'] if 'id' in path else None
+            id=path['id'] if 'id' in path else None
         )
         if main:
             break
