@@ -4,6 +4,7 @@ import ssl
 import configparser
 import re
 import flask
+import json
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -13,7 +14,6 @@ from bs4 import BeautifulSoup
 from flask import request
 
 app = flask.Flask(__name__)
-app.config["DEBUG"] = True
 
 ATTRIBUTE_BLACKLIST = ['style']
 TAG_BLACKLIST = ['script', 'style']
@@ -40,7 +40,7 @@ a Kindle for easy reading on the eyes
 '''
 
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['POST'])
 def send_page_to_kindle():
     if 'url' in request.args:
         url = request.args['url']
@@ -111,7 +111,7 @@ def send_page_to_kindle():
     TODO Strip down the HTML to create a plain
     text version of the page
     '''
-    body_text = 'Just a test.'
+    body_text = main.get_text()
     html_file = '''<html>
         <head>
             <title>''' + title + '''</title>
@@ -161,5 +161,7 @@ def send_page_to_kindle():
         )
         server.quit()
 
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'} 
 
-app.run()
+if __name__ == '__main__':
+    app.run(debug=True)
