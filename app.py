@@ -5,10 +5,14 @@ import configparser
 import re
 import flask
 import json
+import os
+import sys
+import tempfile
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
+from email.mime.application import MIMEApplication
 from email import encoders
 from bs4 import BeautifulSoup
 from flask import request
@@ -17,6 +21,8 @@ app = flask.Flask(__name__)
 
 ATTRIBUTE_BLACKLIST = ['style']
 TAG_BLACKLIST = ['script', 'style']
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 URL = 'https://realpython.com/python-testing/'
 '''
@@ -42,8 +48,8 @@ a Kindle for easy reading on the eyes
 
 @app.route('/', methods=['POST'])
 def send_page_to_kindle():
-    if 'url' in request.args:
-        url = request.args['url']
+    if 'url' in request.values:
+        url = request.values['url']
     else:
         url = URL
     page = requests.get(url, allow_redirects=True)
@@ -72,6 +78,10 @@ def send_page_to_kindle():
         },
         {
             'element': 'div',
+            'class': 'article-content-container',
+        },
+        {
+            'element': 'div',
             'class': 'main-content',
         },
         {
@@ -95,7 +105,7 @@ def send_page_to_kindle():
             break
 
     config = configparser.ConfigParser()
-    config.read('.sendtokindle.rc')
+    config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
 
     sender_email = config['SMTP']['EMAIL']
     if 'USERNAME' in config['SMTP']:
@@ -120,6 +130,13 @@ def send_page_to_kindle():
         </head>
         <body>''' + str(main) + '''</body>
     </html>'''
+
+    temp_file = tempfile.NamedTemporaryFile(suffix='.html')
+    temp_file.write(bytes(html_file, 'UTF-8'))
+    os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
+    mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
+    temp_file.close()
+
     body_html = html_file
 
     part1 = MIMEText(body_text, "plain")
@@ -136,19 +153,22 @@ def send_page_to_kindle():
     # open the file to be sent
     filename = title + '.html'
 
-    # instance of MIMEBase and named as p
-    p = MIMEBase('application', 'octet-stream')
+    title_stripped = re.sub('[^A-Za-z0-9 ]+', '', title)
 
     # To change the payload into encoded form
-    p.set_payload(body_html)
+    with open(mobi_path, "rb") as mobi_file:
+        p = MIMEApplication(
+            mobi_file.read(),
+            Name=title_stripped + '.mobi'
+        )
+        mobi_file.close()
 
     # encode into base64
     encoders.encode_base64(p)
 
-    title_stripped = re.sub('[^A-Za-z0-9 ]+', '', title)
     p.add_header(
         'Content-Disposition',
-        'attachment; filename= %s' % title_stripped + '.html')
+        'attachment; filename= %s' % title_stripped + '.mobi')
 
     # attach the instance 'p' to instance 'msg'
     message.attach(p)
