@@ -2,3 +2,4 @@ beautifulsoup4>=4.9
 pycodestyle>=2.5
 configparser>=5.0.0
 flask>=1.1.2
+requests>=2.23
