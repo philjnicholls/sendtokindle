@@ -2,6 +2,9 @@ import unittest
 import pycodestyle
 import os
 import re
+import json
+
+from app import app
 
 '''
 __author__ = "Phil Nicholls"
@@ -85,6 +88,28 @@ class PEP8TestCase(unittest.TestCase):
                     'Found %s pep8 errors.' %
                     file_errors)
 
+class SendToKindleTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+
+    def test_send_webpages(self):
+        payload = {
+            'url': 'https://realpython.com/python-testing/',
+        }
+
+        response = self.app.post('/', data=payload)
+
+        self.assertIsNotNone(response.json)
+        self.assertEqual(bool, type(response.json['success']))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(response.json['success'])
+
+    def test_missing_url(self):
+        payload = {}
+
+        response = self.app.post('/', data=payload)
+
+        self.assertEqual(400, response.status_code)
 
 if __name__ == '__main__':
     unittest.main()
