@@ -47,6 +47,7 @@ a Kindle for easy reading on the eyes.
 Runs as a Flask REST API on a webserver of your choice
 '''
 
+
 def check_arguments(request):
     '''
     Checks request object for required arguments and
@@ -62,6 +63,7 @@ def check_arguments(request):
         cleaned['url'] = request.values['url']
 
     return cleaned
+
 
 def get_main_content(soup):
     '''
@@ -115,33 +117,7 @@ def get_main_content(soup):
 
     return main
 
-
-@app.route('/', methods=['POST'])
-def send_page_to_kindle():
-
-    # Check for the required parameters
-    args = check_arguments(request)
-    if 'url' not in args:
-        return 'Missing parameter "url".', 400
-
-    # Get the page
-    page = requests.get(args['url'], allow_redirects=True)
-
-    soup = BeautifulSoup(page.content, 'html.parser')
-
-    # Strip the styling and unwanted from the page
-    for tag in soup.findAll():
-        for attr in [attr for attr in tag.attrs if attr in ATTRIBUTE_BLACKLIST]:
-            del tag[attr]
-        if tag.name.lower() in TAG_BLACKLIST:
-            del tag
-
-    title = soup.title.string
-
-    main = get_main_content(soup)
-
-    config = configparser.ConfigParser()
-    config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
+def send_email(config, title, html, plain_text):
 
     sender_email = config['SMTP']['EMAIL']
     if 'USERNAME' in config['SMTP']:
@@ -154,29 +130,29 @@ def send_page_to_kindle():
     kindle_email = config['Kindle']['EMAIL']
 
     '''
-    TODO Strip down the HTML to create a plain
-    text version of the page
+    Add HTML tags to make a valid HTML doc
     '''
-    body_text = main.get_text()
     html_file = '''<html>
         <head>
             <title>''' + title + '''</title>
             <meta http-equiv="Content-Type"
                 content="text/html; charset=UTF-8" />
         </head>
-        <body>''' + str(main) + '''</body>
+        <body>''' + html + '''</body>
     </html>'''
 
+    '''
+    Create a temporary file of the HTML and generate a mobi
+    file from it
+    '''
     temp_file = tempfile.NamedTemporaryFile(suffix='.html')
     temp_file.write(bytes(html_file, 'UTF-8'))
     os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
     mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
     temp_file.close()
 
-    body_html = html_file
-
-    part1 = MIMEText(body_text, "plain")
-    part2 = MIMEText(body_html, "html")
+    part1 = MIMEText(plain_text, "plain")
+    part2 = MIMEText(html_file, "html")
 
     message = MIMEMultipart("alternative")
     message["Subject"] = title
@@ -217,4 +193,49 @@ def send_page_to_kindle():
         )
         server.quit()
 
+
+@app.route('/', methods=['POST'])
+def send_page_to_kindle():
+    # Check for the required parameters
+    args = check_arguments(request)
+    if 'url' not in args:
+        return 'Missing parameter "url".', 400
+
+    # Get the page
+    try:
+        page = requests.get(args['url'], allow_redirects=True)
+    except:
+        return 'Failed to get "' + args['url'] + '"', 404
+
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+    # Strip the styling and unwanted from the page
+    for tag in soup.findAll():
+        for attr in [attr for attr in tag.attrs if attr in ATTRIBUTE_BLACKLIST]:
+            del tag[attr]
+        if tag.name.lower() in TAG_BLACKLIST:
+            del tag
+
+    title = soup.title.string
+
+    main = get_main_content(soup)
+
+    if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
+        config = configparser.ConfigParser()
+        config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
+    else:
+        return 'Missing server config.', 404
+
+    '''
+    TODO Strip down the HTML to create a plain
+    text version of the page
+    '''
+    plain_text = main.get_text()
+
+    send_email(config, title, str(main), plain_text)
+
     return {'success': True}
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
