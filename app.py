@@ -16,19 +16,19 @@ from email.mime.application import MIMEApplication
 from email import encoders
 from bs4 import BeautifulSoup
 from flask import request
+from flask import jsonify
 
 app = flask.Flask(__name__)
 
+'''
+Attributes and tags that will be removed from 
+the scraped HTML
+'''
 ATTRIBUTE_BLACKLIST = ['style']
 TAG_BLACKLIST = ['script', 'style']
 
+# Project directory for file access
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-URL = 'https://realpython.com/python-testing/'
-'''
-URL = ('https://www.ladybirdeducation.co.uk/'
-            'the-importance-of-fairy-tales-in-the-efl-classroom/')
-'''
 
 '''
 __author__ = "Phil Nicholls"
@@ -42,28 +42,28 @@ __status__ = "Development"
 __tests__ = ["pep8", "todo"]
 
 Takes a URL, beautifies the content and sends it on to
-a Kindle for easy reading on the eyes
+a Kindle for easy reading on the eyes.
+
+Runs as a Flask REST API on a webserver of your choice
 '''
 
+def check_arguments(request):
+    '''
+    Checks request object for required arguments and
+    passes back a cleaned dict of them.
 
-@app.route('/', methods=['POST'])
-def send_page_to_kindle():
+    :param request: The HTTP request object
+    :return: A clean dict of arguments
+    '''
+    cleaned = {}
+
+    # If no URL is specified, raise an error
     if 'url' in request.values:
-        url = request.values['url']
-    else:
-        url = URL
-    page = requests.get(url, allow_redirects=True)
+        cleaned['url'] = request.values['url']
 
-    soup = BeautifulSoup(page.content, 'html.parser')
+    return cleaned
 
-    # Strip the styling and unwanted from the page
-    for tag in soup.findAll():
-        if tag.name.lower() in TAG_BLACKLIST:
-            del tag
-        # TODO Strip attributes
-
-    title = soup.title.string
-
+def get_main_content(soup):
     '''
     Try to get a main HTML element which should have the
     main body of the webpage
@@ -72,25 +72,35 @@ def send_page_to_kindle():
     paths_to_main = (
         {
             'element': 'main',
+            'kwargs': {},
         },
         {
             'element': 'article',
+            'kwargs': {},
         },
         {
             'element': 'div',
-            'class': 'article-content-container',
+            'kwargs': {
+                'class_': 'article-content-container',
+            }
         },
         {
             'element': 'div',
-            'class': 'main-content',
+            'kwargs': {
+                'class_': 'main-content',
+            }
         },
         {
             'element': 'div',
-            'id': 'main',
+            'kwargs': {
+                'id': 'main',
+            }
         },
         {
             'element': 'div',
-            'id': 'content',
+            'kwargs': {
+                'id': 'content',
+            }
         },
     )
 
@@ -98,11 +108,37 @@ def send_page_to_kindle():
     for path in paths_to_main:
         main = soup.find(
             path['element'],
-            class_=path['class'] if 'class' in path else None,
-            id=path['id'] if 'id' in path else None
+            **path['kwargs']
         )
         if main:
             break
+
+    return main
+
+
+@app.route('/', methods=['POST'])
+def send_page_to_kindle():
+
+    # Check for the required parameters
+    args = check_arguments(request)
+    if 'url' not in args:
+        return 'Missing parameter "url".', 400
+
+    # Get the page
+    page = requests.get(args['url'], allow_redirects=True)
+
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+    # Strip the styling and unwanted from the page
+    for tag in soup.findAll():
+        for attr in [attr for attr in tag.attrs if attr in ATTRIBUTE_BLACKLIST]:
+            del tag[attr]
+        if tag.name.lower() in TAG_BLACKLIST:
+            del tag
+
+    title = soup.title.string
+
+    main = get_main_content(soup)
 
     config = configparser.ConfigParser()
     config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
@@ -181,7 +217,4 @@ def send_page_to_kindle():
         )
         server.quit()
 
-    return json.dumps({'success':True}), 200, {'ContentType':'application/json'} 
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    return {'success': True}
