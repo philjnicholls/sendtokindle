@@ -2,3 +2,5 @@ __pycache__
 .sendtokindle.rc
 stdout.txt
 stderr.txt
+venv
+.idea
