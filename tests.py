@@ -111,5 +111,14 @@ class SendToKindleTestCase(unittest.TestCase):
 
         self.assertEqual(400, response.status_code)
 
+    def test_bad_url(self):
+        payload = {
+            'url': 'http://dgdgjs.fff/dhdgdyu'
+        }
+
+        response = self.app.post('/', data=payload)
+
+        self.assertEqual(404, response.status_code)
+
 if __name__ == '__main__':
     unittest.main()
