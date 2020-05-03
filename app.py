@@ -18,9 +18,10 @@ from bs4 import BeautifulSoup
 from flask import request
 from flask import jsonify
 from flask_cors import CORS
+from flask_cors import cross_origin
 
 app = flask.Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 '''
 Attributes and tags that will be removed from 
@@ -195,6 +196,7 @@ def send_email(config, title, html, plain_text):
 
 
 @app.route('/', methods=['POST'])
+@cross_origin()
 def send_page_to_kindle():
     # Check for the required parameters
     args = check_arguments(request.values)
