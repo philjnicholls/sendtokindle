@@ -19,9 +19,11 @@ from flask import request
 from flask import jsonify
 from flask_cors import CORS
 from flask_cors import cross_origin
+from flask import Blueprint, jsonify
 
 app = flask.Flask(__name__)
 CORS(app)
+errors = Blueprint('errors', __name__)
 
 '''
 Attributes and tags that will be removed from 
@@ -50,6 +52,30 @@ a Kindle for easy reading on the eyes.
 Runs as a Flask REST API on a webserver of your choice
 '''
 
+@app.errorhandler(Exception)
+def handle_error(error):
+    message = [str(x) for x in error.args]
+
+    status_code = None
+    if error.strerror:
+        try:
+            status_code = str(int(error.strerror))
+        except ValueError or TypeError:
+            status_code = '500'
+
+    if not status_code:
+        status_code = '500'
+
+    success = False
+    response = {
+        'success': success,
+        'error': {
+            'type': error.__class__.__name__,
+            'message': message
+        }
+    }
+
+    return jsonify(response), status_code
 
 def check_arguments(values):
     '''
@@ -200,13 +226,13 @@ def send_page_to_kindle():
     # Check for the required parameters
     args = check_arguments(request.values)
     if 'url' not in args:
-        return 'Missing parameter "url".', 400
+        raise requests.exceptions.RequestException('Missing parameter "url".', 400)
 
     # Get the page
-    try:
-        page = requests.get(args['url'], allow_redirects=True)
-    except requests.exceptions.RequestException as e:
-        return str(e), 404
+    page = requests.get(args['url'], allow_redirects=True)
+
+    if page.status_code == 404:
+        raise requests.exceptions.RequestException('Unable to find "%s"' % args['url'], 404)
 
     soup = BeautifulSoup(page.content, 'html.parser')
 
@@ -221,21 +247,26 @@ def send_page_to_kindle():
 
     main = get_main_content(soup)
 
-    if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
-        config = configparser.ConfigParser()
-        config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
+    if main:
+
+        if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
+            config = configparser.ConfigParser()
+            config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
+        else:
+            raise requests.exceptions.RequestException('Missing server config.', 404)
+
+        '''
+        Strip down the HTML to create a plain
+        text version of the page
+        '''
+        plain_text = main.get_text()
+
+        send_email(config, title, str(main), plain_text)
+
+        return {'success': True}, 200
+
     else:
-        return 'Missing server config.', 404
-
-    '''
-    TODO Strip down the HTML to create a plain
-    text version of the page
-    '''
-    plain_text = main.get_text()
-
-    send_email(config, title, str(main), plain_text)
-
-    return {'success': True}
+        raise requests.exceptions.RequestException('Failed to find the main content for the webpage.', 500)
 
 
 if __name__ == '__main__':
