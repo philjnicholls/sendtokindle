@@ -11,7 +11,7 @@ curl -d "url=https://realpython.com/python-testing/" http://localhost:5000
 curl -d "url=https://www.ladybirdeducation.co.uk/the-importance-of-fairy-tales-in-the-efl-classroom/" http://localhost:5000
 
 ## Webserver Config
-### Apache Exmaple
+### Apache Example
     WSGIScriptAlias /sendtokindle /some/path/to/sendtokindle/app.wsgi process-group=sendtokindle
     WSGIDaemonProcess sendtokindle python-home=/some/path/to/sendtokindle/venv python-path=/some/path/to/sendtokindle
     WSGIProcessGroup sendtokindle
