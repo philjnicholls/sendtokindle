@@ -94,16 +94,24 @@ class SendToKindleTestCase(unittest.TestCase):
         self.app = app.test_client()
 
     def test_send_webpages(self):
-        payload = {
-            'url': 'https://realpython.com/python-testing/',
-        }
+        webpages = (
+            'https://realpython.com/flask-blueprint/',
+            'https://www.thedailybeast.com/mitzpe-ramon-israels-grand-canyon-is-from-another-world',
+            'https://tinybuddha.com/fun-and-inspiring/that-friend-you-can-rely-on/',
+            'https://www.freecodecamp.org/news/javascript-sleep-wait-delay/',
+        )
 
-        response = self.app.post('/', data=payload)
+        for webpage in webpages:
+            payload = {
+                'url': webpage,
+            }
 
-        self.assertIsNotNone(response.json)
-        self.assertEqual(bool, type(response.json['success']))
-        self.assertEqual(200, response.status_code)
-        self.assertTrue(response.json['success'])
+            response = self.app.post('/', data=payload)
+
+            self.assertIsNotNone(response.json)
+            self.assertEqual(bool, type(response.json['success']))
+            self.assertEqual(200, response.status_code)
+            self.assertTrue(response.json['success'])
 
     def test_missing_url(self):
         payload = {}
