@@ -3,3 +3,4 @@ pycodestyle>=2.5
 configparser>=5.0.0
 flask>=1.1.2
 requests>=2.23
+flask-cors>=3.0.8
