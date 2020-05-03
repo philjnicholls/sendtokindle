@@ -196,7 +196,6 @@ def send_email(config, title, html, plain_text):
 
 
 @app.route('/', methods=['POST'])
-@cross_origin()
 def send_page_to_kindle():
     # Check for the required parameters
     args = check_arguments(request.values)
