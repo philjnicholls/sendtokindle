@@ -88,6 +88,7 @@ class PEP8TestCase(unittest.TestCase):
                     'Found %s pep8 errors.' %
                     file_errors)
 
+
 class SendToKindleTestCase(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
@@ -119,6 +120,7 @@ class SendToKindleTestCase(unittest.TestCase):
         response = self.app.post('/', data=payload)
 
         self.assertEqual(404, response.status_code)
+
 
 if __name__ == '__main__':
     unittest.main()
