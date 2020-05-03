@@ -17,8 +17,10 @@ from email import encoders
 from bs4 import BeautifulSoup
 from flask import request
 from flask import jsonify
+from flask_cors import CORS
 
 app = flask.Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 '''
 Attributes and tags that will be removed from 
@@ -48,7 +50,7 @@ Runs as a Flask REST API on a webserver of your choice
 '''
 
 
-def check_arguments(request):
+def check_arguments(values):
     '''
     Checks request object for required arguments and
     passes back a cleaned dict of them.
@@ -59,7 +61,7 @@ def check_arguments(request):
     cleaned = {}
 
     # If no URL is specified, raise an error
-    if 'url' in request.values:
+    if 'url' in values:
         cleaned['url'] = request.values['url']
 
     return cleaned
@@ -117,6 +119,7 @@ def get_main_content(soup):
 
     return main
 
+
 def send_email(config, title, html, plain_text):
 
     sender_email = config['SMTP']['EMAIL']
@@ -162,9 +165,6 @@ def send_email(config, title, html, plain_text):
     message.attach(part1)
     message.attach(part2)
 
-    # open the file to be sent
-    filename = title + '.html'
-
     title_stripped = re.sub('[^A-Za-z0-9 ]+', '', title)
 
     # To change the payload into encoded form
@@ -187,7 +187,7 @@ def send_email(config, title, html, plain_text):
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(host, port, context=context) as server:
-        server.login(sender_email, password)
+        server.login(username, password)
         server.sendmail(
             sender_email, kindle_email, message.as_string()
         )
@@ -197,15 +197,15 @@ def send_email(config, title, html, plain_text):
 @app.route('/', methods=['POST'])
 def send_page_to_kindle():
     # Check for the required parameters
-    args = check_arguments(request)
+    args = check_arguments(request.values)
     if 'url' not in args:
         return 'Missing parameter "url".', 400
 
     # Get the page
     try:
         page = requests.get(args['url'], allow_redirects=True)
-    except:
-        return 'Failed to get "' + args['url'] + '"', 404
+    except requests.exceptions.RequestException as e:
+        return str(e), 404
 
     soup = BeautifulSoup(page.content, 'html.parser')
 
