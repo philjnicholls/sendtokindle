@@ -328,6 +328,7 @@ def home():
             db.session.add(user)
         else:
             user.verified = False
+            user.kindle_email = form.kindle_email.data
             user.api_token = uuid4()
         db.session.commit()
 
