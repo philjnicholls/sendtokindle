@@ -1,8 +1,9 @@
-Already verfified {{ context.already_verified }}
+{% if context.already_verified %}
+<p>Your email has already been verified.</p>
+{% endif %}
 
-Verified {{ context.verified }}
+{% if context.verified and not context.already_verified %}
+<p>Your email has been verified.</p>
+{% endif %}
 
- curl -d "token={{ context.api_token }}" -d "url=https://realpython.com/python-testing/" http://localhost:5000/api
-
-{{ request.url_root }}
-<a href="javascript:const Http = new XMLHttpRequest();Http.open('POST', '{{ request.url_root }}api', true); Http.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');Http.send('token={{ context.api_token }}&url=' + window.location);">Send To Kindle</a>
+<a href="javascript:if(!Http) {const Http = new XMLHttpRequest();} Http.open('POST', '{{ request.url_root }}api', true); Http.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');Http.send('token={{ context.api_token }}&url=' + window.location);">Send To Kindle</a>
