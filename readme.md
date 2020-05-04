@@ -7,9 +7,9 @@ Very much a WIP and part of #100daysofcode
 Rename .sendtokindle.rc.example to .sendtokindle.rc and fill in your details.
 
 ## Testing
-    curl -d "url=https://realpython.com/python-testing/" http://localhost:5000
+    curl -d "token=<user api token>" -d "url=https://realpython.com/python-testing/" http://localhost:5000
     
-    curl -d "url=https://www.ladybirdeducation.co.uk/the-importance-of-fairy-tales-in-the-efl-classroom/" http://localhost:5000
+    curl -d "token=<user api token>" -d "url=https://www.ladybirdeducation.co.uk/the-importance-of-fairy-tales-in-the-efl-classroom/" http://localhost:5000
 
 ## Webserver Config
 ### Apache Example
@@ -23,4 +23,4 @@ Rename .sendtokindle.rc.example to .sendtokindle.rc and fill in your details.
     </Directory>
     
 ## Bookmarklet
-    javascript:const Http = new XMLHttpRequest();Http.open("POST", "https://sendtokindle.philjnicholls.com/", true); Http.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");Http.send("url=" + window.location);
+    javascript:const Http = new XMLHttpRequest();Http.open("POST", "https://sendtokindle.philjnicholls.com/", true); Http.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");Http.send("token=token=<user api token>&url=" + window.location);
