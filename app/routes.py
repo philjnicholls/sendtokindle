@@ -222,10 +222,15 @@ def send_page_to_kindle():
         with tempfile.TemporaryDirectory() as tmp_dir:
             for image in article.images:
                 os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
-                r = requests.get(image)
-                with open(os.path.join(tmp_dir, image), 'wb') as f:
-                    f.write(r.content)
-                    f.close()
+                try:
+                    r = requests.get(image)
+                except:
+                    r = None
+
+                if r:
+                    with open(os.path.join(tmp_dir, image), 'wb') as f:
+                        f.write(r.content)
+                        f.close()
 
             send_kindle_email(token=args['token'],
                               config=s2k_config,
