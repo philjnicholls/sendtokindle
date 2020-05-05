@@ -103,6 +103,7 @@ class SendToKindleTestCase(unittest.TestCase):
 
         for webpage in webpages:
             payload = {
+                'token': ,
                 'url': webpage,
             }
 
@@ -122,6 +123,7 @@ class SendToKindleTestCase(unittest.TestCase):
 
     def test_bad_url(self):
         payload = {
+            'token': ,
             'url': 'http://dgdgjs.fff/dhdgdyu'
         }
 

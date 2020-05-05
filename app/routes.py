@@ -10,13 +10,13 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email import encoders
-from bs4 import BeautifulSoup
 from flask import request
 from flask import jsonify
 from flask import render_template
 from flask import url_for
 from flask import redirect
 from uuid import uuid4
+from newspaper import Article, Config
 
 from app import app
 from app import db
@@ -248,29 +248,19 @@ def send_page_to_kindle():
     if 'url' not in args:
         raise requests.exceptions.RequestException('Missing parameter "url".', 400)
 
+    config = Config()
+    config.keep_article_html = True
+    config.follow_meta_refresh = True
+
     # Get the page
-    page = requests.get(args['url'], allow_redirects=True)
+    article = Article(args['url'])
+    article.download()
+    article.parse()
 
-    if page.status_code == 404:
-        raise requests.exceptions.RequestException('Unable to find "%s"' % args['url'], 404)
-
-    soup = BeautifulSoup(page.content, 'html.parser')
-
-    # Strip the styling and unwanted from the page
-    for tag in soup.findAll():
-        for attr in [attr for attr in tag.attrs if attr in ATTRIBUTE_BLACKLIST]:
-            del tag[attr]
-        if tag.name.lower() in TAG_BLACKLIST:
-            del tag
-
-    title = soup.title.string
-
-    main = get_main_content(soup)
-
-    if main:
+    if article.article_html:
         config = get_config()
 
-        send_kindle_email(token=args['token'], config=config, title=title, html=str(main))
+        send_kindle_email(token=args['token'], config=config, title=title, html=article.article_html)
 
         return {'success': True}, 200
 
@@ -339,6 +329,6 @@ def home():
                    subject='Verify your email address',
                    plain_text='%sverify?token=%s&email=%s' % (request.url_root, user.email_token, user.email))
 
-        return redirect(url_for('home') + '?token=' + user.api_token)
+        return redirect(url_for('home') + '?email_sent=' + user.email)
 
     return render_template('home.html', form=form)
