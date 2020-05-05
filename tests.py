@@ -4,7 +4,10 @@ import os
 import re
 import json
 
+from flask_wtf.csrf import generate_csrf
+
 from app import app
+from app.models import User
 
 '''
 __author__ = "Phil Nicholls"
@@ -91,7 +94,16 @@ class PEP8TestCase(unittest.TestCase):
 
 class SendToKindleTestCase(unittest.TestCase):
     def setUp(self):
+        app.config['WTF_CSRF_ENABLED'] = False
         self.app = app.test_client()
+        payload = {
+            'email': 'phil.j.nicholls@gmail.com',
+            'kindle_email': 'phil.j.nicholls@gmail.com',
+        }
+        response = self.app.post('/', data=payload, follow_redirects=True)
+        user = User.query.filter_by(email='phil.j.nicholls@gmail.com').first()
+        response = self.app.get('/verify?email={email}&token={token}'.format(email=user.email, token=user.email_token))
+        self.api_token = user.api_token
 
     def test_send_webpages(self):
         webpages = (
@@ -103,11 +115,11 @@ class SendToKindleTestCase(unittest.TestCase):
 
         for webpage in webpages:
             payload = {
-                'token': ,
+                'token': self.api_token,
                 'url': webpage,
             }
 
-            response = self.app.post('/', data=payload)
+            response = self.app.post('/api', data=payload)
 
             self.assertIsNotNone(response.json)
             self.assertEqual(bool, type(response.json['success']))
@@ -117,17 +129,17 @@ class SendToKindleTestCase(unittest.TestCase):
     def test_missing_url(self):
         payload = {}
 
-        response = self.app.post('/', data=payload)
+        response = self.app.post('/api', data=payload)
 
         self.assertEqual(400, response.status_code)
 
     def test_bad_url(self):
         payload = {
-            'token': ,
+            'token': self.api_token,
             'url': 'http://dgdgjs.fff/dhdgdyu'
         }
 
-        response = self.app.post('/', data=payload)
+        response = self.app.post('/api', data=payload)
 
         self.assertEqual(404, response.status_code)
 
