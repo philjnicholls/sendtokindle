@@ -101,15 +101,17 @@ class SendToKindleTestCase(unittest.TestCase):
             'kindle_email': 'phil.j.nicholls@gmail.com',
         }
         response = self.app.post('/', data=payload, follow_redirects=True)
+        self.assertIs(response.status_code, 200, 'Failed to register')
         user = User.query.filter_by(email='phil.j.nicholls@gmail.com').first()
         response = self.app.get('/verify?email={email}&token={token}'.format(email=user.email, token=user.email_token))
+        self.assertIs(response.status_code, 200, 'Failed to verify')
         self.api_token = user.api_token
 
     def test_send_webpages(self):
         webpages = (
             'https://realpython.com/flask-blueprint/',
             'https://www.thedailybeast.com/mitzpe-ramon-israels-grand-canyon-is-from-another-world',
-            'https://tinybuddha.com/fun-and-inspiring/that-friend-you-can-rely-on/',
+            'https://tinybuddha.com/blog/the-challenge-of-doing-less-when-youre-used-to-doing-more/',
             'https://www.freecodecamp.org/news/javascript-sleep-wait-delay/',
         )
 

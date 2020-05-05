@@ -1,7 +1,6 @@
-pycodestyle>=2.5
+pycodestyle>=2.5.0
 configparser>=5.0.0
 flask>=1.1.2
-requests>=2.23
 flask-cors>=3.0.8
 flask-wtf>=0.14.3
 email_validator>=1.1.0

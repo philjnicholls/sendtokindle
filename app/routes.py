@@ -51,6 +51,7 @@ a Kindle for easy reading on the eyes.
 Runs as a Flask REST API on a webserver of your choice
 '''
 
+
 @app.errorhandler(Exception)
 def handle_error(error):
     message = [str(x) for x in error.args]
@@ -69,18 +70,19 @@ def handle_error(error):
         'success': success,
         'error': {
             'type': error.__class__.__name__,
-            'message': message
+            'message': message,
         }
     }
 
     return jsonify(response), status_code
+
 
 def check_arguments(values):
     '''
     Checks request object for required arguments and
     passes back a cleaned dict of them.
 
-    :param request: The HTTP request object
+    :param values: List of args from the URL
     :return: A clean dict of arguments
     '''
     cleaned = {}
@@ -148,6 +150,7 @@ def send_email(config, to_email, subject, html=None, plain_text=None, attachment
         )
         server.quit()
 
+
 def send_kindle_email(token, config, title, html, tmp_dir):
     user = User.query.filter_by(api_token=token).first()
     if not user:
@@ -184,6 +187,7 @@ def send_kindle_email(token, config, title, html, tmp_dir):
                attachment_path=mobi_path,
                attachment_title=os.path.basename(mobi_path))
 
+
 def get_config():
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
         config = configparser.ConfigParser()
@@ -191,6 +195,7 @@ def get_config():
         return config
     else:
         raise requests.exceptions.RequestException('Missing server config.', 404)
+
 
 @app.route('/api', methods=['POST'])
 @csrf.exempt
@@ -219,8 +224,8 @@ def send_page_to_kindle():
                 os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
                 r = requests.get(image)
                 with open(os.path.join(tmp_dir, image), 'wb') as f:
-                 f.write(r.content)
-                 f.close()
+                    f.write(r.content)
+                    f.close()
 
             send_kindle_email(token=args['token'],
                               config=s2k_config,
@@ -237,9 +242,8 @@ def send_page_to_kindle():
 @app.route('/verify', methods=['GET'])
 def verify():
     '''
-    Verify email ownership by following link in
-    email
-    :return:
+    Verify email ownership with email_token
+    :return: Response confirming verification or RequestException
     '''
     user = User.query.filter_by(email=request.values['email'],
                                 email_token=request.values['token']).first()
@@ -265,12 +269,13 @@ def verify():
 
     return render_template('verify.html', context=context)
 
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
     '''
     Present a simple form to register using email address
     and kindle email address.
-    :return:
+    :return: Page to register or RequestException
     '''
     form = RegisterForm()
 
