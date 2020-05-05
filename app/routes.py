@@ -51,7 +51,7 @@ a Kindle for easy reading on the eyes.
 Runs as a Flask REST API on a webserver of your choice
 '''
 
-#@app.errorhandler(Exception)
+@app.errorhandler(Exception)
 def handle_error(error):
     message = [str(x) for x in error.args]
 
