@@ -148,7 +148,7 @@ def send_email(config, to_email, subject, html=None, plain_text=None, attachment
         )
         server.quit()
 
-def send_kindle_email(token, config, title, html):
+def send_kindle_email(token, config, title, html, tmp_dir):
     user = User.query.filter_by(api_token=token).first()
     if not user:
         raise requests.exceptions.RequestException('No matching token found.', 401)
@@ -172,7 +172,7 @@ def send_kindle_email(token, config, title, html):
     Create a temporary file of the HTML and generate a mobi
     file from it
     '''
-    temp_file = tempfile.NamedTemporaryFile(suffix='.html')
+    temp_file = tempfile.NamedTemporaryFile(dir=tmp_dir, suffix='.html')
     temp_file.write(bytes(html_file, 'UTF-8'))
     os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
     mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
@@ -210,14 +210,15 @@ def send_page_to_kindle():
         article.fetch_images()
 
         # Dump the images in tmp for kindlegen
-        for image in article.images:
-            os.makedirs(os.path.join(tempfile.gettempdir(), os.path.dirname(image)), exist_ok=True)
-            r = requests.get(image)
-            with open(os.path.join(tempfile.gettempdir(), image), 'wb') as f:
-                f.write(r.content)
-                f.close()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            for image in article.images:
+                os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
+                r = requests.get(image)
+                with open(os.path.join(tmp_dir, image), 'wb') as f:
+                 f.write(r.content)
+                 f.close()
 
-        send_kindle_email(token=args['token'], config=s2k_config, title=article.title, html=article.article_html)
+            send_kindle_email(token=args['token'], config=s2k_config, title=article.title, html=article.article_html, tmp_dir=tmp_dir)
 
         return {'success': True}, 200
 
