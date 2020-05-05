@@ -178,7 +178,11 @@ def send_kindle_email(token, config, title, html, tmp_dir):
     mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
     temp_file.close()
 
-    send_email(config=config, to_email=user.kindle_email, subject=title, attachment_path=mobi_path, attachment_title=os.path.basename(mobi_path))
+    send_email(config=config,
+               to_email=user.kindle_email,
+               subject=title,
+               attachment_path=mobi_path,
+               attachment_title=os.path.basename(mobi_path))
 
 def get_config():
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
@@ -218,7 +222,11 @@ def send_page_to_kindle():
                  f.write(r.content)
                  f.close()
 
-            send_kindle_email(token=args['token'], config=s2k_config, title=article.title, html=article.article_html, tmp_dir=tmp_dir)
+            send_kindle_email(token=args['token'],
+                              config=s2k_config,
+                              title=article.title,
+                              html=article.article_html,
+                              tmp_dir=tmp_dir)
 
         return {'success': True}, 200
 
@@ -233,7 +241,8 @@ def verify():
     email
     :return:
     '''
-    user = User.query.filter_by(email=request.values['email'], email_token=request.values['token']).first()
+    user = User.query.filter_by(email=request.values['email'],
+                                email_token=request.values['token']).first()
 
     if user is None:
         raise requests.exceptions.RequestException('No email found matching that token.', 401)
@@ -286,7 +295,9 @@ def home():
         send_email(config=config,
                    to_email=user.email,
                    subject='Verify your email address',
-                   plain_text='%sverify?token=%s&email=%s' % (request.url_root, user.email_token, user.email))
+                   plain_text='%sverify?token=%s&email=%s' % (request.url_root,
+                                                              user.email_token,
+                                                              user.email))
 
         return redirect(url_for('home') + '?email_sent=' + user.email)
 
