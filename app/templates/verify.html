@@ -9,5 +9,28 @@
     <p>Your email has been verified.</p>
     {% endif %}
 
-    <a href="javascript:(function(){const Http = new XMLHttpRequest(); Http.open('POST', '{{ request.url_root }}api', true); Http.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');Http.send('token={{ context.api_token }}&url=' + window.location);})()">Send To Kindle</a>
+    <a href="javascript:(function(){
+            const Http = new XMLHttpRequest();
+
+            Http.open('POST', '{{ request.url_root }}api', true);
+            Http.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+            Http.onreadystatechange = function () {
+                if (Http.readyState === 4 && Http.status === 200) {
+                   var json = JSON.parse(Http.responseText);
+                   if (json.success) {
+                    alert('Sent to kindle :)');
+                   } else {
+                    alert('Failed to send to kindle :(');
+                   }
+                }
+            };
+            try {
+                Http.send('token={{ context.api_token }}&url=' + window.location);
+            }
+            catch(err) {
+                alert('Oops, something went wrong sending to kindle, sorry about that <3.');
+            }
+
+        })()">Send To Kindle</a>
 {% endblock %}
