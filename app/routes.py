@@ -24,13 +24,6 @@ from app.models import User
 from app.forms import RegisterForm
 from app.extensions import csrf
 
-'''
-Attributes and tags that will be removed from 
-the scraped HTML
-'''
-ATTRIBUTE_BLACKLIST = ['style']
-TAG_BLACKLIST = ['script', 'style']
-
 # Project directory for file access
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -175,11 +168,12 @@ def send_kindle_email(token, config, title, html, tmp_dir):
     Create a temporary file of the HTML and generate a mobi
     file from it
     '''
-    temp_file = tempfile.NamedTemporaryFile(dir=tmp_dir, suffix='.html')
-    temp_file.write(bytes(html_file, 'UTF-8'))
-    os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
-    mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
-    temp_file.close()
+    with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix='.html', mode="w+") as temp_file:
+        temp_file.write(html_file)
+        temp_file.flush()
+        os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
+        mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
+        temp_file.close()
 
     send_email(config=config,
                to_email=user.kindle_email,
