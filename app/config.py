@@ -8,14 +8,11 @@ from os import environ
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 class Config(object):
-    if os.path.exists(os.path.join(BASE_DIR, 'mysql.cnf')):
+    if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
         config = configparser.ConfigParser()
-        config.read(os.path.join(BASE_DIR, 'mysql.cnf'))
+        config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
     else:
         raise requests.exceptions.RequestException('Missing database config.', 404)
 
-    SQLALCHEMY_DATABASE_URI = 'mysql://%s:%s@%s/%s' % (config['client']['user'],
-                                                       config['client']['password'],
-                                                       config['client']['host'],
-                                                       config['client']['database'])
+    SQLALCHEMY_DATABASE_URI = 'mysql://{config[user]}:{config[password]}@{config[host]}/{config[database]}'.format(config=config['MySQL'])
     SQLALCHEMY_TRACK_MODIFICATIONS = False
