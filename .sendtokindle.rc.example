@@ -1,9 +1,0 @@
-[SMTP]
-# USERNAME=
-EMAIL=
-PASSWORD=
-HOST=
-PORT=
-
-[Kindle]
-EMAIL=

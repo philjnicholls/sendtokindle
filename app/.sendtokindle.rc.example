@@ -1,0 +1,12 @@
+[SMTP]
+USERNAME=
+EMAIL=
+PASSWORD=
+HOST=
+PORT=
+
+[MySQL]
+host =
+database =
+user =
+password =
