@@ -58,7 +58,7 @@ def handle_error(error):
     status_code = None
     try:
         status_code = str(int(error.strerror))
-    except ValueError or TypeError:
+    except ValueError or TypeError or AttributeError:
         status_code = '500'
 
     if not status_code:
@@ -94,58 +94,6 @@ def check_arguments(values):
 
     return cleaned
 
-
-def get_main_content(soup):
-    '''
-    Try to get a main HTML element which should have the
-    main body of the webpage
-    '''
-
-    paths_to_main = (
-        {
-            'element': 'main',
-            'kwargs': {},
-        },
-        {
-            'element': 'article',
-            'kwargs': {},
-        },
-        {
-            'element': 'div',
-            'kwargs': {
-                'class_': 'article-content-container',
-            }
-        },
-        {
-            'element': 'div',
-            'kwargs': {
-                'class_': 'main-content',
-            }
-        },
-        {
-            'element': 'div',
-            'kwargs': {
-                'id': 'main',
-            }
-        },
-        {
-            'element': 'div',
-            'kwargs': {
-                'id': 'content',
-            }
-        },
-    )
-
-    # Search the HTML for the main content
-    for path in paths_to_main:
-        main = soup.find(
-            path['element'],
-            **path['kwargs']
-        )
-        if main:
-            break
-
-    return main
 
 def send_email(config, to_email, subject, html=None, plain_text=None, attachment_title=None, attachment_path=None):
 
@@ -230,7 +178,7 @@ def send_kindle_email(token, config, title, html):
     mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
     temp_file.close()
 
-    send_email(config=config, to_email=user.email, subject=title, attachment_path=mobi_path, attachment_title=os.path.basename(mobi_path))
+    send_email(config=config, to_email=user.kindle_email, subject=title, attachment_path=mobi_path, attachment_title=os.path.basename(mobi_path))
 
 def get_config():
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
@@ -248,19 +196,28 @@ def send_page_to_kindle():
     if 'url' not in args:
         raise requests.exceptions.RequestException('Missing parameter "url".', 400)
 
-    config = Config()
-    config.keep_article_html = True
-    config.follow_meta_refresh = True
+    np_config = Config()
+    np_config.keep_article_html = True
+    np_config.follow_meta_refresh = True
 
     # Get the page
-    article = Article(args['url'])
+    article = Article(args['url'], config=np_config)
     article.download()
     article.parse()
 
     if article.article_html:
-        config = get_config()
+        s2k_config = get_config()
+        article.fetch_images()
 
-        send_kindle_email(token=args['token'], config=config, title=title, html=article.article_html)
+        # Dump the images in tmp for kindlegen
+        for image in article.images:
+            os.makedirs(os.path.join(tempfile.gettempdir(), os.path.dirname(image)), exist_ok=True)
+            r = requests.get(image)
+            with open(os.path.join(tempfile.gettempdir(), image), 'wb') as f:
+                f.write(r.content)
+                f.close()
+
+        send_kindle_email(token=args['token'], config=s2k_config, title=article.title, html=article.article_html)
 
         return {'success': True}, 200
 
@@ -319,7 +276,8 @@ def home():
         else:
             user.verified = False
             user.kindle_email = form.kindle_email.data
-            user.api_token = uuid4()
+            user.email_token = uuid4()
+            user.api_token - uuid4()
         db.session.commit()
 
         # Send email to validate email
