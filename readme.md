@@ -20,4 +20,4 @@ Rename .sendtokindle.rc.example to .sendtokindle.rc and fill in your details.
             <Files app.wsgi>
                     Require all granted
             </Files>
-    </Directory>= new XMLHttpRequest();Http.open("POST", "https://sendtokindle.philjnicholls.com/", true); Http.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");Http.send("token=token=<user api token>&url=" + window.location);
+    </Directory>
