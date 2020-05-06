@@ -9,7 +9,13 @@
     <p>Your email has been verified.</p>
     {% endif %}
 
-    <a href="javascript:(function(){
+    {% if jobs %}
+        <h2>Items In Your Queue</h2>
+        {% for job in context.jobs%}
+            <div>{{ job.args[1] }}</div>
+        {% endfor %}
+    {% endif %}
+    <p>Drag this link into your bookmarks <a href="javascript:(function(){
             const Http = new XMLHttpRequest();
 
             Http.open('POST', '{{ request.url_root }}api', true);
@@ -32,5 +38,6 @@
                 alert('Oops, something went wrong sending to kindle, sorry about that <3.');
             }
 
-        })()">Send To Kindle</a>
+        })()">Send To Kindle</a></p>
+        <p>When you want to send a webpage to your Kindle just click the bookmark.</p>
 {% endblock %}
