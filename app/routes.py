@@ -17,9 +17,12 @@ from flask import url_for
 from flask import redirect
 from uuid import uuid4
 from newspaper import Article, Config
+from rq.job import Job
+from worker import conn
 
 from app import app
 from app import db
+from app import q
 from app.models import User
 from app.forms import RegisterForm
 from app.extensions import csrf
@@ -43,7 +46,7 @@ Runs as a Flask REST API on a webserver of your choice
 '''
 
 
-@app.errorhandler(Exception)
+#@app.errorhandler(Exception)
 def handle_error(error):
     '''
     Catches errors from the app and tries to send back
@@ -75,37 +78,152 @@ def handle_error(error):
     return jsonify(response), status_code
 
 
-def check_arguments(values):
+class EmailWebpage():
     '''
-    Checks request object for required arguments and
-    passes back a cleaned dict of them.
-
-    :param values: List of args from the URL
-    :return: A clean dict of arguments
+    Handles all the business around extracting HTML and emailing mobi
     '''
-    cleaned = {}
+    def __init__(self, email, url, smtp_user, smtp_email, smtp_password, smtp_host, smtp_port):
+        '''
+        Just setup local vars, no actual processing takes place
+        :param email: email to send mobi to
+        :param url: url to convert to mobi
+        '''
+        self.email = email
+        self.url = url
+        self.smtp = {
+            'user': smtp_user,
+            'email': smtp_email,
+            'password': smtp_password,
+            'host': smtp_host,
+            'port': smtp_port,
+        }
 
-    # If no URL is specified, raise an error
-    if 'url' in values:
-        cleaned['url'] = request.values['url']
-    else:
-        raise requests.exceptions.RequestException('Missing parameter "url".', 400)
+    def send(self):
+        self.__get_page()
+        if self.article.article_html:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                self.__dump_images(tmp_dir)
+                self.__send_kindle_email(tmp_dir)
 
+    def __get_page(self):
+        '''
+        Download the page and parse
+        :param url: URL of the page to download
+        :return:
+        '''
+        # Setup some config for newspaper
+        config = Config()
+        config.keep_article_html = True
+        config.follow_meta_refresh = True
 
-    if 'token' in values:
-        cleaned['token'] = request.values['token']
-    else:
-        raise requests.exceptions.RequestException('Missing parameter "token".', 400)
+        self.article = Article(self.url, config=config)
+        self.article.download()
+        self.article.parse()
+        self.article.fetch_images()
 
-    return cleaned
+    def __dump_images(self, tmp_dir):
+        '''
+        Writes images to the supplied temporary directory so
+        they are ready for kindlgen to pick up
+        :param images: array of image URLs
+        :param tmp_dir: open temporary directory to store
+            the images
+        :return:
+        '''
+        for image in self.article.images:
+            os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
+            try:
+                r = requests.get(image)
+            except:
+                r = None
 
+            if r:
+                with open(os.path.join(tmp_dir, image), 'wb') as f:
+                    f.write(r.content)
+                    f.close()
+
+    def __send_kindle_email(self, tmp_dir):
+        '''
+        Sends an email to a user matching the API token with an attached
+        mobi file
+
+        :param tmp_dir: Currently open directory to use for
+            mobi generation and source images
+        :return:
+        '''
+
+        # Add HTML tags to make a valid HTML doc
+        html_file = '''<html>
+                <head>
+                    <title>''' + self.article.title + '''</title>
+                    <meta http-equiv="Content-Type"
+                        content="text/html; charset=UTF-8" />
+                </head>
+                <body><h1>''' + self.article.title + '''</h1>''' + self.article.article_html + '''</body>
+            </html>'''
+
+        '''
+        Create a temporary file of the HTML and generate a mobi
+        file from it
+        '''
+        with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix='.html', mode="w+") as temp_file:
+            temp_file.write(html_file)
+            temp_file.flush()
+            os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
+            mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
+            temp_file.close()
+
+        self.__send_email(attachment_path=mobi_path,
+                   attachment_title=os.path.basename(mobi_path))
+
+    def __send_email(self, attachment_title, attachment_path):
+
+        message = MIMEMultipart("alternative")
+
+        if self.article.text:
+            part1 = MIMEText(self.article.text, "plain")
+            message.attach(part1)
+        if self.article.article_html:
+            part2 = MIMEText(self.article.article_html, "html")
+            message.attach(part2)
+
+        message["Subject"] = self.article.title
+        message["From"] = self.smtp['email']
+        message["To"] = self.email
+
+        if attachment_path and attachment_title:
+            title_stripped = re.sub('[^A-Za-z0-9 ]+', '', attachment_title)
+
+            # To change the payload into encoded form
+            with open(attachment_path, "rb") as file:
+                p = MIMEApplication(
+                    file.read(),
+                    Name=title_stripped
+                )
+                file.close()
+
+            # encode into base64
+            encoders.encode_base64(p)
+
+            p.add_header(
+                'Content-Disposition',
+                'attachment; filename= %s' % title_stripped + '.mobi')
+
+            # attach the instance 'p' to instance 'msg'
+            message.attach(p)
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(self.smtp['host'], self.smtp['port'], context=context) as server:
+            server.login(self.smtp['user'], self.smtp['password'])
+            server.sendmail(
+                self.smtp['email'], self.email, message.as_string()
+            )
+            server.quit()
 
 def send_email(to_email,
                subject,
                html=None,
-               plain_text=None,
-               attachment_title=None,
-               attachment_path=None):
+               plain_text=None):
     '''
     Sends an email using redentials from the .sendtokindle.rc file
     :param to_email: Recipient
@@ -142,27 +260,6 @@ def send_email(to_email,
     message["From"] = sender_email
     message["To"] = to_email
 
-    if attachment_path and attachment_title:
-        title_stripped = re.sub('[^A-Za-z0-9 ]+', '', attachment_title)
-
-        # To change the payload into encoded form
-        with open(attachment_path, "rb") as file:
-            p = MIMEApplication(
-                file.read(),
-                Name=title_stripped
-            )
-            file.close()
-
-        # encode into base64
-        encoders.encode_base64(p)
-
-        p.add_header(
-            'Content-Disposition',
-            'attachment; filename= %s' % title_stripped + '.mobi')
-
-        # attach the instance 'p' to instance 'msg'
-        message.attach(p)
-
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(host, port, context=context) as server:
         server.login(username, password)
@@ -170,54 +267,6 @@ def send_email(to_email,
             sender_email, to_email, message.as_string()
         )
         server.quit()
-
-
-def send_kindle_email(token, title, html, tmp_dir):
-    '''
-    Sends an email to a user matching the API token with an attached
-    mobi file
-
-    :param token: The api_token to lookup the user in the db
-    :param title: Title of the mobi article
-    :param html: The html to generate the mobi from
-    :param tmp_dir: Currently open directory to use for
-        mobi generation and source images
-    :return:
-    '''
-
-    # Run som e checks to make sure our user is valid
-    user = User.query.filter_by(api_token=token).first()
-    if not user:
-        raise requests.exceptions.RequestException('No matching token found.', 401)
-
-    if not user.verified:
-        raise requests.exceptions.RequestException('You have not verified your email adress.', 401)
-
-    # Add HTML tags to make a valid HTML doc
-    html_file = '''<html>
-            <head>
-                <title>''' + title + '''</title>
-                <meta http-equiv="Content-Type"
-                    content="text/html; charset=UTF-8" />
-            </head>
-            <body><h1>''' + title + '''</h1>''' + html + '''</body>
-        </html>'''
-
-    '''
-    Create a temporary file of the HTML and generate a mobi
-    file from it
-    '''
-    with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix='.html', mode="w+") as temp_file:
-        temp_file.write(html_file)
-        temp_file.flush()
-        os.system(os.path.join(BASE_DIR, 'kindlegen') + ' ' + temp_file.name)
-        mobi_path = os.path.splitext(temp_file.name)[0] + '.mobi'
-        temp_file.close()
-
-    send_email(to_email=user.kindle_email,
-               subject=title,
-               attachment_path=mobi_path,
-               attachment_title=os.path.basename(mobi_path))
 
 
 def get_config():
@@ -229,45 +278,17 @@ def get_config():
         raise requests.exceptions.RequestException('Missing server config.', 404)
 
 
-def get_page(url):
-    '''
-    Download the page and parse
-    :param url: URL of the page to download
-    :return:
-    '''
-    # Setup some config for newspaper
-    config = Config()
-    config.keep_article_html = True
-    config.follow_meta_refresh = True
+def process_and_send_page(email, url):
+    config = get_config()
 
-    article = Article(url, config=config)
-    article.download()
-    article.parse()
-    article.fetch_images()
-
-    return article
-
-
-def dump_images(images, tmp_dir):
-    '''
-    Writes images to the supplied temporary directory so
-    they are ready for kindlgen to pick up
-    :param images: array of image URLs
-    :param tmp_dir: open temporary directory to store
-        the images
-    :return:
-    '''
-    for image in images:
-        os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
-        try:
-            r = requests.get(image)
-        except:
-            r = None
-
-        if r:
-            with open(os.path.join(tmp_dir, image), 'wb') as f:
-                f.write(r.content)
-                f.close()
+    send_page = EmailWebpage(email=email,
+                             url=url,
+                             smtp_host=config['SMTP']['HOST'],
+                             smtp_user=config['SMTP']['USERNAME'],
+                             smtp_password=config['SMTP']['PASSWORD'],
+                             smtp_port=config['SMTP']['PORT'],
+                             smtp_email=config['SMTP']['EMAIL'])
+    send_page.send()
 
 @app.route('/api', methods=['POST'])
 @csrf.exempt
@@ -277,26 +298,28 @@ def send_page_to_kindle():
     and emails it as a mobi file.
     :return:
     '''
-    # Check for the required parameters
-    args = check_arguments(request.values)
 
-    article = get_page(args['url'])
+    # If no URL is specified, raise an error
+    if 'url' not in request.values:
+        raise requests.exceptions.RequestException('Missing parameter "url".', 400)
 
-    if article.article_html:
+    if 'token' not in request.values:
+        raise requests.exceptions.RequestException('Missing parameter "token".', 400)
 
-        # Dump the images in tmp for kindlegen
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            dump_images(article.images, tmp_dir)
+    user = User.query.filter_by(api_token=request.values['token']).first()
 
-            send_kindle_email(token=args['token'],
-                              title=article.title,
-                              html=article.article_html,
-                              tmp_dir=tmp_dir)
+    if not user:
+        raise requests.exceptions.RequestException('No matching token found.', 401)
 
-        return {'success': True}, 200
+    if not user.verified:
+        raise requests.exceptions.RequestException('You have not verified your email adress.', 401)
 
-    else:
-        raise requests.exceptions.RequestException('Failed to find the main content for the webpage.', 500)
+    job = q.enqueue_call(
+        func = process_and_send_page, args = (user.kindle_email, request.values['url']), result_ttl = 5000
+    )
+    print(job.get_id())
+
+    return {'success': True}, 200
 
 
 @app.route('/verify', methods=['GET'])

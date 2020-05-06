@@ -21,3 +21,19 @@ Rename .sendtokindle.rc.example to .sendtokindle.rc and fill in your details.
                     Require all granted
             </Files>
     </Directory>
+    
+ ### systemd
+    vim /lib/systemd/system/sendtokindle-queue.service
+ 
+    [Unit]
+    Description=Sendtokindle rq worker
+    After=network.target
+    
+    [Service]
+    User=someuser
+    WorkingDirectory=/path/to/app
+    ExecStart=/path/to/venv/bin/python worker.py
+    Restart=always
+    
+    [Install]
+    WantedBy=multi-user.target
