@@ -1,4 +1,3 @@
-import requests
 import smtplib
 import ssl
 import configparser
@@ -6,17 +5,14 @@ import os
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
 from flask import request
 from flask import jsonify
 from flask import render_template
 from flask import url_for
 from flask import redirect
 from uuid import uuid4
-from rq.job import Job
-from worker import conn
 from requests.exceptions import RequestException
-from EmailWebpage.EmailWebpage import EmailWebpage
+from app.EmailWebpage import EmailWebpage
 
 from app import app
 from app import db
