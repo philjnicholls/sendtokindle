@@ -77,7 +77,7 @@ def send_email(to_email,
                html=None,
                plain_text=None):
     """
-    Sends an email using redentials from the .sendtokindle.rc file
+    Sends an email using credentials from the .sendtokindle.rc file
     :param to_email: Recipient
     :param subject: Email subject
     :param html: HTML body for the email
@@ -119,6 +119,10 @@ def send_email(to_email,
 
 
 def get_config():
+    """
+    Get application configuration from rc file
+    :return: A config object
+    """
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
         config = configparser.ConfigParser()
         config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
@@ -128,6 +132,14 @@ def get_config():
 
 
 def process_and_send_page(email, url):
+    """
+    Extracts main content from the URL, converts to a mobi
+    and emails as attachment to "email"
+
+    :param email: Recipient of the mobi file
+    :param url: The URL to convert to a mobi
+    :return:
+    """
     config = get_config()
 
     send_page = EmailWebpage(email=email,

@@ -14,7 +14,15 @@ class EmailWebpage():
     """
     Handles all the business around extracting HTML and emailing mobi
     """
-    def __init__(self, email, url, smtp_user, smtp_email, smtp_password, smtp_host, smtp_port, kindlegen_path):
+    def __init__(self,
+                 email,
+                 url,
+                 smtp_user,
+                 smtp_email,
+                 smtp_password,
+                 smtp_host,
+                 smtp_port,
+                 kindlegen_path):
         """
         Just setup local vars, no actual processing takes place
         :param email: email to send mobi to
@@ -32,6 +40,11 @@ class EmailWebpage():
         self.kindlegen_path = kindlegen_path
 
     def send(self):
+        """
+        Gets the webpage, converts to mobi and emails to
+        recipient
+        :return:
+        """
         self.__get_page()
         if self.article.article_html:
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -77,7 +90,7 @@ class EmailWebpage():
 
     def __send_kindle_email(self, tmp_dir):
         """
-        Sends an email to a user matching the API token with an attached
+        Sends an email to the user matching the API token with an attached
         mobi file
 
         :param tmp_dir: Currently open directory to use for
@@ -110,6 +123,13 @@ class EmailWebpage():
                    attachment_title=os.path.basename(mobi_path))
 
     def __send_email(self, attachment_title, attachment_path):
+        """
+        Generic email sending with attachment
+
+        :param attachment_title: Name of the file attachment
+        :param attachment_path: Path to the attachment
+        :return:
+        """
 
         message = MIMEMultipart("alternative")
 
