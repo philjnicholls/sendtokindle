@@ -9,6 +9,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config(object):
+    # Get the SQL connection settings from settings rc file
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
         config = configparser.ConfigParser()
         config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
