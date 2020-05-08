@@ -15,4 +15,4 @@ class RegisterForm(FlaskForm):
         Email(message='Not a valid email address.'),
         DataRequired()],
         render_kw={"placeholder": "Kindle email"})
-    submit = SubmitField('Submit')
+    submit = SubmitField('Register')
