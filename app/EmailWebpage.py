@@ -11,6 +11,9 @@ from email.mime.application import MIMEApplication
 from newspaper import Article, Config
 from email import encoders
 
+class NoArticleHTMLException(Exception):
+    pass
+
 class EmailWebpage():
     """
     Handles all the business around extracting HTML and emailing mobi
@@ -53,6 +56,8 @@ class EmailWebpage():
             with tempfile.TemporaryDirectory() as tmp_dir:
                 self.__dump_images(tmp_dir)
                 self.__send_kindle_email(tmp_dir)
+        else:
+            raise NoArticleHTMLException(f'Failed to get main article text for {self.url}')
 
     def __get_page(self):
         """
