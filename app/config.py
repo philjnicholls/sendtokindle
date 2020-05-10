@@ -16,7 +16,7 @@ class Config(object):
     else:
         raise requests.exceptions.RequestException('Missing database config.', 404)
 
-    SQLALCHEMY_DATABASE_URI = 'mysql://{config[user]}:' \
-                              '{config[password]}@{config[host]}/' \
-                              '{config[database]}'.format(config=config['MySQL'])
+    SQLALCHEMY_DATABASE_URI = (f'mysql://{config["MySQL"]["user"]}:'
+                               f'{config["MySQL"]["password"]}@{config["MySQL"]["host"]}/'
+                               f'{config["MySQL"]["database"]}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
