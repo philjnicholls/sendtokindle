@@ -186,7 +186,7 @@ def send_page_to_kindle():
         raise RequestException('You have not verified your email adress.', 401)
 
     bad_article_url = url_for('report_bad_article')
-    report_url = f'{request.url_root}{bad_article_url}?url={request.values["url"]}&email={user.email}'
+    report_url = f'{request.host_url}{bad_article_url}?url={request.values["url"]}&email={user.email}'
 
     if app.debug:
         # If we're debugging then skip the queue to make life easier
