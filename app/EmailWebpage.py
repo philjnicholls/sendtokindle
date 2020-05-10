@@ -3,6 +3,7 @@ import ssl
 import smtplib
 import re
 import os
+import requests
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -22,7 +23,8 @@ class EmailWebpage():
                  smtp_password,
                  smtp_host,
                  smtp_port,
-                 kindlegen_path):
+                 kindlegen_path,
+                 append_html):
         """
         Just setup local vars, no actual processing takes place
         :param email: email to send mobi to
@@ -30,6 +32,7 @@ class EmailWebpage():
         """
         self.email = email
         self.url = url
+        self.append_html = append_html
         self.smtp = {
             'user': smtp_user,
             'email': smtp_email,
@@ -80,7 +83,7 @@ class EmailWebpage():
             os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
             try:
                 r = requests.get(image)
-            except:
+            except Exception as e:
                 r = None
 
             if r:
@@ -99,13 +102,13 @@ class EmailWebpage():
         """
 
         # Add HTML tags to make a valid HTML doc
-        html_file = '''<html>
+        html_file = f'''<html>
                 <head>
-                    <title>''' + self.article.title + '''</title>
+                    <title>{self.article.title}</title>
                     <meta http-equiv="Content-Type"
                         content="text/html; charset=UTF-8" />
                 </head>
-                <body><h1>''' + self.article.title + '''</h1>''' + self.article.article_html + '''</body>
+                <body><h1>{self.article.title}</h1>{self.article.article_html}{self.append_html}</body>
             </html>'''
 
         '''

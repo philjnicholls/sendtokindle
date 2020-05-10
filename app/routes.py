@@ -2,6 +2,8 @@ import smtplib
 import ssl
 import configparser
 import os
+import json
+import requests
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -13,12 +15,15 @@ from flask import redirect
 from uuid import uuid4
 from requests.exceptions import RequestException
 from app.EmailWebpage import EmailWebpage
+from github import Github
+from urllib.parse import urlparse
 
 from app import app
 from app import db
 from app import q
 from app.models import User
 from app.forms import RegisterForm
+from app.forms import ReportArticleForm
 from app.extensions import csrf
 from app.config import BASE_DIR
 
@@ -39,37 +44,37 @@ a Kindle for easy reading on the eyes.
 Runs as a Flask REST API on a web server of your choice
 '''
 
+if not app.debug:
+    @app.errorhandler(Exception)
+    def handle_error(error):
+        """
+        Catches errors from the app and tries to send back
+        a nice HTTP header and JSON response
+        :param error: The error that has been raised
+        :return:
+        """
+        message = [str(x) for x in error.args]
 
-@app.errorhandler(Exception)
-def handle_error(error):
-    """
-    Catches errors from the app and tries to send back
-    a nice HTTP header and JSON response
-    :param error: The error that has been raised
-    :return:
-    """
-    message = [str(x) for x in error.args]
+        status_code = None
+        try:
+            status_code = str(int(error.strerror))
+        except:
+            # Maybe strerror is not what I thought
+            status_code = '500'
 
-    status_code = None
-    try:
-        status_code = str(int(error.strerror))
-    except:
-        # Maybe strerror is not what I thought
-        status_code = '500'
+        if not status_code:
+            status_code = '500'
 
-    if not status_code:
-        status_code = '500'
-
-    success = False
-    response = {
-        'success': success,
-        'error': {
-            'type': error.__class__.__name__,
-            'message': message,
+        success = False
+        response = {
+            'success': success,
+            'error': {
+                'type': error.__class__.__name__,
+                'message': message,
+            }
         }
-    }
 
-    return jsonify(response), status_code
+        return jsonify(response), status_code
 
 
 def send_email(to_email,
@@ -131,7 +136,7 @@ def get_config():
         raise RequestException('Missing server config.', 404)
 
 
-def process_and_send_page(email, url):
+def process_and_send_page(email, url, report_url):
     """
     Extracts main content from the URL, converts to a mobi
     and emails as attachment to "email"
@@ -142,6 +147,9 @@ def process_and_send_page(email, url):
     """
     config = get_config()
 
+    report_html = (f'<a href="{report_url}">'
+                'Report a problem with this article conversion.</a>')
+
     send_page = EmailWebpage(email=email,
                              url=url,
                              smtp_host=config['SMTP']['HOST'],
@@ -149,7 +157,8 @@ def process_and_send_page(email, url):
                              smtp_password=config['SMTP']['PASSWORD'],
                              smtp_port=config['SMTP']['PORT'],
                              smtp_email=config['SMTP']['EMAIL'],
-                             kindlegen_path=os.path.join(BASE_DIR, 'kindlegen'))
+                             kindlegen_path=os.path.join(BASE_DIR, 'kindlegen'),
+                             append_html=report_html)
     send_page.send()
 
 @app.route('/api', methods=['POST'])
@@ -176,9 +185,16 @@ def send_page_to_kindle():
     if not user.verified:
         raise RequestException('You have not verified your email adress.', 401)
 
-    job = q.enqueue_call(
-        func = process_and_send_page, args = (user.kindle_email, request.values['url']), result_ttl = 5000
-    )
+    bad_article_url = url_for('report_bad_article')
+    report_url = f'{request.url_root}{bad_article_url}?url={request.values["url"]}&email={user.email}'
+
+    if app.debug:
+        # If we're debugging then skip the queue to make life easier
+        process_and_send_page(user.kindle_email, request.values['url'], report_url)
+    else:
+        job = q.enqueue_call(
+            func = process_and_send_page, args = (user.kindle_email, request.values['url'], report_url), result_ttl = 5000
+        )
 
     return {'success': True}, 200
 
@@ -259,3 +275,33 @@ def home():
         return redirect(url_for('home') + '?email_sent=' + user.email)
 
     return render_template('home.html', form=form)
+
+
+@app.route('/report', methods=['GET', 'POST'])
+def report_bad_article():
+    """
+    Web page to send reports of issues with articles
+    :return: Rendered template
+    """
+
+    form = ReportArticleForm(email=request.values['email'] if 'email' in request.values else None,
+                             url=request.values['url'] if 'url' in request.values else None)
+
+    if form.validate_on_submit():
+        # Create a new issue on Github for later review
+
+        uri = urlparse(form.url.data)
+        title = f'Bad Article For {uri.netloc}'
+        body = f'URL: {form.url.data}\nEmail: {form.email.data}\nComment: {form.comment.data}'
+        config = get_config()
+
+        github = Github(config['GitHub']['ACCESS_TOKEN'])
+        repo = github.get_repo(config['GitHub']['REPO_OWNER'] + '/' + config['GitHub']['REPO_NAME'])
+        repo.create_issue(title=title,
+                        body=body,
+                        labels=['bad article'])
+
+        return redirect(url_for('report_bad_article') + '?sent=1')
+
+
+    return render_template('report_article.html', form=form)

@@ -10,3 +10,8 @@ host =
 database =
 user =
 password =
+
+[GitHub]
+ACCESS_TOKEN=
+REPO_OWNER=
+REPO_NAME=
