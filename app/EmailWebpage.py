@@ -116,6 +116,10 @@ class EmailWebpage():
                 <body><h1>{self.article.title}</h1>{self.article.article_html}{self.append_html}</body>
             </html>'''
 
+        # See if we have a top image to use for the cover
+        if self.article.has_top_image():
+            cover = self.article.top_image
+
         '''
         Create a temporary file of the HTML and generate a mobi
         file from it
