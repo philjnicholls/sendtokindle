@@ -147,8 +147,11 @@ def process_and_send_page(email, url, report_url):
     """
     config = get_config()
 
-    report_html = (f'<a href="{report_url}">'
-                'Report a problem with this article conversion.</a>')
+    report_html = (f'< mbp: pagebreak / >'
+                    f'Having trouble with this delivery? Is something not quite right?'
+                   f'<a href="{report_url}">Send us a comment</a> and we\'ll do our '
+                   f'best to keep improving the service. Thanks for the feedback and '
+                   f'enjoy SendToKindle.')
 
     send_page = EmailWebpage(email=email,
                              url=url,
