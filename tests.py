@@ -23,10 +23,10 @@ __tests__ = ["pep8", "todo"]
 
 
 def get_tests(filename):
-    '''
+    """
     Gets a tests array from the docstring meta tag
     for a source file
-    '''
+    """
 
     tests = []
 
@@ -97,12 +97,12 @@ class SendToKindleTestCase(unittest.TestCase):
         app.config['WTF_CSRF_ENABLED'] = False
         self.app = app.test_client()
         payload = {
-            'email': 'phil.j.nicholls@gmail.com',
-            'kindle_email': 'phil.j.nicholls@gmail.com',
+            'email': 'phil@example.com',
+            'kindle_email': 'phil@example.com',
         }
         response = self.app.post('/', data=payload, follow_redirects=True)
         self.assertIs(response.status_code, 200, 'Failed to register')
-        user = User.query.filter_by(email='phil.j.nicholls@gmail.com').first()
+        user = User.query.filter_by(email='phil@example.com').first()
         response = self.app.get('/verify?email={email}&token={token}'.format(email=user.email, token=user.email_token))
         self.assertIs(response.status_code, 200, 'Failed to verify')
         self.api_token = user.api_token
@@ -143,7 +143,7 @@ class SendToKindleTestCase(unittest.TestCase):
 
         response = self.app.post('/api', data=payload)
 
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(500, response.status_code)
 
 
 if __name__ == '__main__':

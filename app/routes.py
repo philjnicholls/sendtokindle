@@ -58,9 +58,10 @@ if not app.debug:
         status_code = None
         try:
             status_code = str(int(error.strerror))
-        except:
-            # Maybe strerror is not what I thought
+        except AttributeError:
             status_code = '500'
+        except TypeError:
+            status_code = 500
 
         if not status_code:
             status_code = '500'
@@ -143,12 +144,14 @@ def process_and_send_page(email, url, report_url):
 
     :param email: Recipient of the mobi file
     :param url: The URL to convert to a mobi
+    :param report_url:URL to use for the link inserted into
+    the mobi for reporting issues with article
     :return:
     """
     config = get_config()
 
     report_html = (f'< mbp: pagebreak / >'
-                    f'Having trouble with this delivery? Is something not quite right?'
+                   f'Having trouble with this delivery? Is something not quite right?'
                    f'<a href="{report_url}">Send us a comment</a> and we\'ll do our '
                    f'best to keep improving the service. Thanks for the feedback and '
                    f'enjoy SendToKindle.')
@@ -163,6 +166,7 @@ def process_and_send_page(email, url, report_url):
                              kindlegen_path=os.path.join(BASE_DIR, 'kindlegen'),
                              append_html=report_html)
     send_page.send()
+
 
 @app.route('/api', methods=['POST'])
 @csrf.exempt
@@ -188,6 +192,9 @@ def send_page_to_kindle():
     if not user.verified:
         raise RequestException('You have not verified your email adress.', 401)
 
+    # Will raise exception is page doesn't exist or there's a problem
+    requests.get(request.values['url'], allow_redirects=True)
+
     bad_article_url = url_for('report_bad_article')
     report_url = f'{request.host_url}{bad_article_url}?url={request.values["url"]}&email={user.email}'
 
@@ -196,7 +203,9 @@ def send_page_to_kindle():
         process_and_send_page(user.kindle_email, request.values['url'], report_url)
     else:
         job = q.enqueue_call(
-            func = process_and_send_page, args = (user.kindle_email, request.values['url'], report_url), result_ttl = 5000
+            func=process_and_send_page,
+            args=(user.kindle_email, request.values['url'], report_url),
+            result_ttl=5000
         )
 
     return {'success': True}, 200
@@ -269,11 +278,11 @@ def home():
                                                               user.email_token,
                                                               user.email),
                    html='<p><a href="%sverify?token=%s&email=%s">Click here</a> '
-                            'to verify your email address '
-                            'and get instructions on how to start sending '
-                            'web pages to your Kindle.</p>' % (request.url_root,
-                                                               user.email_token,
-                                                               user.email))
+                        'to verify your email address '
+                        'and get instructions on how to start sending '
+                        'web pages to your Kindle.</p>' % (request.url_root,
+                                                           user.email_token,
+                                                           user.email))
 
         return redirect(url_for('home') + '?email_sent=' + user.email)
 
@@ -301,10 +310,9 @@ def report_bad_article():
         github = Github(config['GitHub']['ACCESS_TOKEN'])
         repo = github.get_repo(config['GitHub']['REPO_OWNER'] + '/' + config['GitHub']['REPO_NAME'])
         repo.create_issue(title=title,
-                        body=body,
-                        labels=['bad article'])
+                          body=body,
+                          labels=['bad article'])
 
         return redirect(url_for('report_bad_article') + '?sent=1')
-
 
     return render_template('report_article.html', form=form)

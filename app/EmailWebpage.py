@@ -11,10 +11,12 @@ from email.mime.application import MIMEApplication
 from newspaper import Article, Config
 from email import encoders
 
+
 class NoArticleHTMLException(Exception):
     pass
 
-class EmailWebpage():
+
+class EmailWebpage:
     """
     Handles all the business around extracting HTML and emailing mobi
     """
@@ -76,14 +78,14 @@ class EmailWebpage():
         self.article.fetch_images()
 
     def __dump_images(self, tmp_dir):
-        '''
+        """
         Writes images to the supplied temporary directory so
         they are ready for kindlgen to pick up
         :param images: array of image URLs
         :param tmp_dir: open temporary directory to store
             the images
         :return:
-        '''
+        """
         for image in self.article.images:
             os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
             try:
@@ -116,10 +118,6 @@ class EmailWebpage():
                 <body><h1>{self.article.title}</h1>{self.article.article_html}{self.append_html}</body>
             </html>'''
 
-        # See if we have a top image to use for the cover
-        if self.article.has_top_image():
-            cover = self.article.top_image
-
         '''
         Create a temporary file of the HTML and generate a mobi
         file from it
@@ -132,7 +130,7 @@ class EmailWebpage():
             temp_file.close()
 
         self.__send_email(attachment_path=mobi_path,
-                   attachment_title=os.path.basename(mobi_path))
+                          attachment_title=os.path.basename(mobi_path))
 
     def __send_email(self, attachment_title, attachment_path):
         """
