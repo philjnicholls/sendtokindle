@@ -1,3 +1,4 @@
+"""Handle routes for web front-end and API."""
 import smtplib
 import ssl
 import configparser
@@ -46,9 +47,9 @@ Runs as a Flask REST API on a web server of your choice
 if not app.debug:
     @app.errorhandler(Exception)
     def handle_error(error):
-        """
-        Catches errors from the app and tries to send back
-        a nice HTTP header and JSON response
+        """Catch errors from the app.
+
+        Try to send back a nice HTTP header and JSON response
         :param error: The error that has been raised
         :return:
         """
@@ -81,15 +82,15 @@ def send_email(to_email,
                subject,
                html=None,
                plain_text=None):
-    """
-    Sends an email using credentials from the .sendtokindle.rc file
+    """Send an email.
+
+    Use credentials from the .sendtokindle.rc file
     :param to_email: Recipient
     :param subject: Email subject
     :param html: HTML body for the email
     :param plain_text: Plain text body for the email
     :return:
     """
-
     config = get_config()
 
     sender_email = config['SMTP']['EMAIL']
@@ -124,8 +125,8 @@ def send_email(to_email,
 
 
 def get_config():
-    """
-    Get application configuration from rc file
+    """Get application configuration from rc file.
+
     :return: A config object
     """
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
@@ -137,9 +138,7 @@ def get_config():
 
 
 def process_and_send_page(email, url, report_url):
-    """
-    Extracts main content from the URL, converts to a mobi
-    and emails as attachment to "email"
+    """Extract main content from the URL and email.
 
     :param email: Recipient of the mobi file
     :param url: The URL to convert to a mobi
@@ -171,12 +170,10 @@ def process_and_send_page(email, url, report_url):
 @app.route('/api', methods=['POST'])
 @csrf.exempt
 def send_page_to_kindle():
-    """
-    Public api which takes a token and url, finds the main page content
-    and emails it as a mobi file.
+    """Public api to send webpage to kindle.
+
     :return:
     """
-
     # If no URL is specified, raise an errorException
     if 'url' not in request.values:
         raise RequestException('Missing parameter "url".', 400)
@@ -216,8 +213,8 @@ def send_page_to_kindle():
 
 @app.route('/verify', methods=['GET'])
 def verify():
-    """
-    Verify email ownership with email_token
+    """Verify email ownership with email_token.
+
     :return: Response confirming verification or RequestException
     """
     user = User.query.filter_by(email=request.values['email'],
@@ -248,9 +245,9 @@ def verify():
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    """
-    Present a simple form to register using email address
-    and kindle email address.
+    """Present a simple form to register.
+
+    Requires an email address and kindle email address.
     :return: Page to register or RequestException
     """
     form = RegisterForm()
@@ -293,11 +290,13 @@ def home():
 
 @app.route('/report', methods=['GET', 'POST'])
 def report_bad_article():
-    """
-    Web page to send reports of issues with articles
+    """Web page to send reports of issues with articles.
+
+    Present a simple form to allow posting of issues into
+    GitHub repository.
+
     :return: Rendered template
     """
-
     form = ReportArticleForm(email=request.values.get('email', None),
                              url=request.values.get('url', None))
 
