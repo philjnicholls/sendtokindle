@@ -2,7 +2,6 @@ import smtplib
 import ssl
 import configparser
 import os
-import json
 import requests
 
 from email.mime.text import MIMEText
@@ -150,11 +149,11 @@ def process_and_send_page(email, url, report_url):
     """
     config = get_config()
 
-    report_html = (f'< mbp: pagebreak / >'
-                   f'Having trouble with this delivery? Is something not quite right?'
-                   f'<a href="{report_url}">Send us a comment</a> and we\'ll do our '
-                   f'best to keep improving the service. Thanks for the feedback and '
-                   f'enjoy SendToKindle.')
+    report_html = (f'<mbp:pagebreak />'
+                   f'Having trouble with this delivery? Is something not quite'
+                   f'right?<a href="{report_url}">Send us a comment</a> and we'
+                   f'\'ll do our best to keep improving the service. Thanks '
+                   f'for the feedback and enjoy SendToKindle.')
 
     send_page = EmailWebpage(email=email,
                              url=url,
@@ -163,7 +162,8 @@ def process_and_send_page(email, url, report_url):
                              smtp_password=config['SMTP']['PASSWORD'],
                              smtp_port=config['SMTP']['PORT'],
                              smtp_email=config['SMTP']['EMAIL'],
-                             kindlegen_path=os.path.join(BASE_DIR, 'kindlegen'),
+                             kindlegen_path=os.path.join(BASE_DIR,
+                                                         'kindlegen'),
                              append_html=report_html)
     send_page.send()
 
@@ -196,13 +196,16 @@ def send_page_to_kindle():
     requests.get(request.values['url'], allow_redirects=True)
 
     bad_article_url = url_for('report_bad_article')
-    report_url = f'{request.host_url}{bad_article_url}?url={request.values["url"]}&email={user.email}'
+    report_url = (f'{request.host_url}{bad_article_url}?'
+                  f'url={request.values["url"]}&email={user.email}')
 
     if app.debug:
         # If we're debugging then skip the queue to make life easier
-        process_and_send_page(user.kindle_email, request.values['url'], report_url)
+        process_and_send_page(user.kindle_email,
+                              request.values['url'],
+                              report_url)
     else:
-        job = q.enqueue_call(
+        q.enqueue_call(
             func=process_and_send_page,
             args=(user.kindle_email, request.values['url'], report_url),
             result_ttl=5000
@@ -254,12 +257,13 @@ def home():
 
     if form.validate_on_submit():
         '''
-        Generate a new token for new users or create 
+        Generate a new token for new users or create
         a new token for existing users
         '''
         user = User.query.filter_by(email=form.email.data).first()
         if user is None:
-            user = User(email=form.email.data, kindle_email=form.kindle_email.data)
+            user = User(email=form.email.data,
+                        kindle_email=form.kindle_email.data)
             db.session.add(user)
         else:
             user.verified = False
@@ -271,18 +275,16 @@ def home():
         # Send email to validate email
         send_email(to_email=user.email,
                    subject='Verify your email address',
-                   plain_text='Click the link to verify your email address ' 
-                              'and get instructions on how to start sending '
-                              'web pages to your Kindle.'
-                              '%sverify?token=%s&email=%s' % (request.url_root,
-                                                              user.email_token,
-                                                              user.email),
-                   html='<p><a href="%sverify?token=%s&email=%s">Click here</a> '
-                        'to verify your email address '
-                        'and get instructions on how to start sending '
-                        'web pages to your Kindle.</p>' % (request.url_root,
-                                                           user.email_token,
-                                                           user.email))
+                   plain_text=(f'Click the link to verify your email address '
+                               f'and get instructions on how to start sending '
+                               f'web pages to your Kindle.'
+                               f'{request.url_root}verify?token='
+                               f'{user.email_token}&email={user.email}'),
+                   html=(f'<p><a href="{request.url_root}verify?token='
+                         f'{user.email_token}&email={user.email}">'
+                         f'Click here</a> to verify your email address '
+                         f'and get instructions on how to start sending '
+                         f'web pages to your Kindle.</p>'))
 
         return redirect(url_for('home') + '?email_sent=' + user.email)
 
@@ -296,19 +298,22 @@ def report_bad_article():
     :return: Rendered template
     """
 
-    form = ReportArticleForm(email=request.values['email'] if 'email' in request.values else None,
-                             url=request.values['url'] if 'url' in request.values else None)
+    form = ReportArticleForm(email=request.values.get('email', None),
+                             url=request.values.get('url', None))
 
     if form.validate_on_submit():
         # Create a new issue on Github for later review
 
         uri = urlparse(form.url.data)
         title = f'Bad Article For {uri.netloc}'
-        body = f'URL: {form.url.data}\nEmail: {form.email.data}\nComment: {form.comment.data}'
+        body = (f'URL: {form.url.data}\n'
+                f'Email: {form.email.data}\n'
+                f'Comment:{form.comment.data}')
         config = get_config()
 
         github = Github(config['GitHub']['ACCESS_TOKEN'])
-        repo = github.get_repo(config['GitHub']['REPO_OWNER'] + '/' + config['GitHub']['REPO_NAME'])
+        repo = github.get_repo(config['GitHub']['REPO_OWNER']
+                               + '/' + config['GitHub']['REPO_NAME'])
         repo.create_issue(title=title,
                           body=body,
                           labels=['bad article'])

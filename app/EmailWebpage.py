@@ -59,7 +59,8 @@ class EmailWebpage:
                 self.__dump_images(tmp_dir)
                 self.__send_kindle_email(tmp_dir)
         else:
-            raise NoArticleHTMLException(f'Failed to get main article text for {self.url}')
+            raise NoArticleHTMLException(f'Failed to get main article text '
+                                         f'for {self.url}')
 
     def __get_page(self):
         """
@@ -87,10 +88,12 @@ class EmailWebpage:
         :return:
         """
         for image in self.article.images:
-            os.makedirs(os.path.join(tmp_dir, os.path.dirname(image)), exist_ok=True)
+            os.makedirs(os.path.join(tmp_dir,
+                                     os.path.dirname(image)),
+                        exist_ok=True)
             try:
                 r = requests.get(image)
-            except Exception as e:
+            except Exception:
                 r = None
 
             if r:
@@ -122,7 +125,9 @@ class EmailWebpage:
         Create a temporary file of the HTML and generate a mobi
         file from it
         '''
-        with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix='.html', mode="w+") as temp_file:
+        with tempfile.NamedTemporaryFile(dir=tmp_dir,
+                                         suffix='.html',
+                                         mode="w+") as temp_file:
             temp_file.write(html_file)
             temp_file.flush()
             os.system(self.kindlegen_path + ' ' + temp_file.name)
@@ -176,7 +181,9 @@ class EmailWebpage:
             message.attach(p)
 
         context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(self.smtp['host'], self.smtp['port'], context=context) as server:
+        with smtplib.SMTP_SSL(self.smtp['host'],
+                              self.smtp['port'],
+                              context=context) as server:
             server.login(self.smtp['user'], self.smtp['password'])
             server.sendmail(
                 self.smtp['email'], self.email, message.as_string()

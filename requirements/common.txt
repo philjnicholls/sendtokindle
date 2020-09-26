@@ -1,0 +1,12 @@
+beautifulsoup4
+Flask
+Flask-Cors
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-MySQLDb
+Flask-WTF
+newspaper3k
+PyGithub
+requests
+rq
+email-validator

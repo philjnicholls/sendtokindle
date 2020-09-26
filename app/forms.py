@@ -16,8 +16,8 @@ class RegisterForm(FlaskForm):
         DataRequired()],
         render_kw={'placeholder': 'Kindle email'})
     submit = SubmitField('Register')
-    
-    
+
+
 class ReportArticleForm(FlaskForm):
     """
     Form to send reports fo bad articles

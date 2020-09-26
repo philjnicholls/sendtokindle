@@ -2,8 +2,6 @@ import os
 import requests
 import configparser
 
-from os import environ
-
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,9 +12,11 @@ class Config(object):
         config = configparser.ConfigParser()
         config.read(os.path.join(BASE_DIR, '.sendtokindle.rc'))
     else:
-        raise requests.exceptions.RequestException('Missing database config.', 404)
+        raise requests.exceptions.RequestException('Missing database config.',
+                                                   404)
 
     SQLALCHEMY_DATABASE_URI = (f'mysql://{config["MySQL"]["user"]}:'
-                               f'{config["MySQL"]["password"]}@{config["MySQL"]["host"]}/'
+                               f'{config["MySQL"]["password"]}@'
+                               f'{config["MySQL"]["host"]}/'
                                f'{config["MySQL"]["database"]}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
