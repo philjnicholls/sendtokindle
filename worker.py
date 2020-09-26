@@ -1,3 +1,4 @@
+"""RQ worker to process webpage extraction and email jobs."""
 import os
 
 import redis

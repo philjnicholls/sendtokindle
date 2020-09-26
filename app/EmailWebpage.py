@@ -1,3 +1,5 @@
+"""Class to support emailing of a webpage."""
+
 import tempfile
 import ssl
 import smtplib
@@ -13,13 +15,12 @@ from email import encoders
 
 
 class NoArticleHTMLException(Exception):
-    pass
+    """Failed to extract the article."""
 
 
 class EmailWebpage:
-    """
-    Handles all the business around extracting HTML and emailing mobi
-    """
+    """Handles all the business around extracting HTML and emailing mobi."""
+
     def __init__(self,
                  email,
                  url,
@@ -30,8 +31,8 @@ class EmailWebpage:
                  smtp_port,
                  kindlegen_path,
                  append_html):
-        """
-        Just setup local vars, no actual processing takes place
+        """Initialize local vars, no actual processing takes place.
+
         :param email: email to send mobi to
         :param url: url to convert to mobi
         """
@@ -48,9 +49,8 @@ class EmailWebpage:
         self.kindlegen_path = kindlegen_path
 
     def send(self):
-        """
-        Gets the webpage, converts to mobi and emails to
-        recipient
+        """Get the webpage, convert to mobi and email.
+
         :return:
         """
         self.__get_page()
@@ -63,8 +63,8 @@ class EmailWebpage:
                                          f'for {self.url}')
 
     def __get_page(self):
-        """
-        Download the page and parse
+        """Download the page and parse.
+
         :param url: URL of the page to download
         :return:
         """
@@ -79,12 +79,11 @@ class EmailWebpage:
         self.article.fetch_images()
 
     def __dump_images(self, tmp_dir):
-        """
-        Writes images to the supplied temporary directory so
-        they are ready for kindlgen to pick up
-        :param images: array of image URLs
-        :param tmp_dir: open temporary directory to store
-            the images
+        """Write images to the supplied temporary directory.
+
+        Ready for kindlgen to pick up
+
+        :param tmp_dir: open temporary directory to store the images
         :return:
         """
         for image in self.article.images:
@@ -102,29 +101,26 @@ class EmailWebpage:
                     f.close()
 
     def __send_kindle_email(self, tmp_dir):
-        """
-        Sends an email to the user matching the API token with an attached
-        mobi file
+        """Send an ebook to a Kindle via email.
 
         :param tmp_dir: Currently open directory to use for
             mobi generation and source images
         :return:
         """
-
         # Add HTML tags to make a valid HTML doc
-        html_file = f'''<html>
+        html_file = f"""<html>
                 <head>
                     <title>{self.article.title}</title>
                     <meta http-equiv="Content-Type"
                         content="text/html; charset=UTF-8" />
                 </head>
                 <body><h1>{self.article.title}</h1>{self.article.article_html}{self.append_html}</body>
-            </html>'''
+            </html>"""
 
-        '''
+        """
         Create a temporary file of the HTML and generate a mobi
         file from it
-        '''
+        """
         with tempfile.NamedTemporaryFile(dir=tmp_dir,
                                          suffix='.html',
                                          mode="w+") as temp_file:
@@ -138,14 +134,14 @@ class EmailWebpage:
                           attachment_title=os.path.basename(mobi_path))
 
     def __send_email(self, attachment_title, attachment_path):
-        """
-        Generic email sending with attachment
+        """Send an email with an attachment.
+
+        Sends an email using SMTP settings from class with attached file
 
         :param attachment_title: Name of the file attachment
         :param attachment_path: Path to the attachment
         :return:
         """
-
         message = MIMEMultipart("alternative")
 
         if self.article.text:
@@ -188,4 +184,3 @@ class EmailWebpage:
             server.sendmail(
                 self.smtp['email'], self.email, message.as_string()
             )
-            server.quit()
