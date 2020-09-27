@@ -137,11 +137,12 @@ def get_config():
         raise RequestException('Missing server config.', 404)
 
 
-def process_and_send_page(email, url, report_url):
+def process_and_send_page(email, url, html, title, report_url):
     """Extract main content from the URL and email.
 
     :param email: Recipient of the mobi file
     :param url: The URL to convert to a mobi
+    :param html: HTML content for the mobi
     :param report_url:URL to use for the link inserted into
     the mobi for reporting issues with article
     :return:
@@ -156,6 +157,8 @@ def process_and_send_page(email, url, report_url):
 
     send_page = EmailWebpage(email=email,
                              url=url,
+                             html=html,
+                             title=title,
                              smtp_host=config['SMTP']['HOST'],
                              smtp_user=config['SMTP']['USERNAME'],
                              smtp_password=config['SMTP']['PASSWORD'],
@@ -175,8 +178,8 @@ def send_page_to_kindle():
     :return:
     """
     # If no URL is specified, raise an errorException
-    if 'url' not in request.values:
-        raise RequestException('Missing parameter "url".', 400)
+    if 'url' not in request.values and 'html' not in request.values:
+        raise RequestException('Missing parameter "url" or "html".', 400)
 
     if 'token' not in request.values:
         raise RequestException('Missing parameter "token".', 400)
@@ -189,22 +192,33 @@ def send_page_to_kindle():
     if not user.verified:
         raise RequestException('You have not verified your email adress.', 401)
 
-    # Will raise exception is page doesn't exist or there's a problem
-    requests.get(request.values['url'], allow_redirects=True)
+    if request.values.get('url', None):
+        # Will raise exception is page doesn't exist or there's a problem
+        requests.get(request.values['url'], allow_redirects=True)
 
     bad_article_url = url_for('report_bad_article')
-    report_url = (f'{request.host_url}{bad_article_url}?'
-                  f'url={request.values["url"]}&email={user.email}')
+    if 'url' in request.values:
+        report_url = (f'{request.host_url}{bad_article_url}?'
+                      f'url={request.values["url"]}&email={user.email}')
+    else:
+        report_url = (f'{request.host_url}{bad_article_url}?'
+                      f'title={request.values["title"]}&email={user.email}')
 
     if app.debug:
         # If we're debugging then skip the queue to make life easier
-        process_and_send_page(user.kindle_email,
-                              request.values['url'],
-                              report_url)
+        process_and_send_page(email=user.kindle_email,
+                              url=request.values.get('url', None),
+                              html=request.values.get('html', None),
+                              title=request.values.get('title', None),
+                              report_url=report_url)
     else:
         q.enqueue_call(
             func=process_and_send_page,
-            args=(user.kindle_email, request.values['url'], report_url),
+            args=(user.kindle_email,
+                  request.values.get('url', None),
+                  request.values.get('html', None),
+                  request.values.get('title', None),
+                  report_url),
             result_ttl=5000
         )
 

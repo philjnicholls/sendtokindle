@@ -15,7 +15,7 @@ init:
 	pip install -r requirements/common.txt
 
 test:
-	pytest --flake8 --cov --cov-report term-missing
+	FLASK_DEBUG=0 pytest --flake8 --cov --cov-report term-missing
 
 serve_website:
 	flask run

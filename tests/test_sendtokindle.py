@@ -84,7 +84,7 @@ def test_send_webpages(test_app, api_token, log_smtp):
 
 
 def test_missing_url(test_app):
-    """Error as URL is not supplied in payload."""
+    """Error as URL or HTML not supplied in payload."""
     payload = {}
 
     response = test_app.post('/api', data=payload)

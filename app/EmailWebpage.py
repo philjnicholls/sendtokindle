@@ -24,6 +24,8 @@ class EmailWebpage:
     def __init__(self,
                  email,
                  url,
+                 html,
+                 title,
                  smtp_user,
                  smtp_email,
                  smtp_password,
@@ -33,11 +35,13 @@ class EmailWebpage:
                  append_html):
         """Initialize local vars, no actual processing takes place.
 
-        :param email: email to send mobi to
+        :param email: email to send mobi turlo
         :param url: url to convert to mobi
         """
         self.email = email
         self.url = url
+        self.html = html
+        self.title = title
         self.append_html = append_html
         self.smtp = {
             'user': smtp_user,
@@ -54,7 +58,7 @@ class EmailWebpage:
         :return:
         """
         self.__get_page()
-        if self.article.article_html:
+        if (self.article and self.article.article_html):
             with tempfile.TemporaryDirectory() as tmp_dir:
                 self.__dump_images(tmp_dir)
                 self.__send_kindle_email(tmp_dir)
@@ -65,7 +69,6 @@ class EmailWebpage:
     def __get_page(self):
         """Download the page and parse.
 
-        :param url: URL of the page to download
         :return:
         """
         # Setup some config for newspaper
@@ -73,10 +76,19 @@ class EmailWebpage:
         config.keep_article_html = True
         config.follow_meta_refresh = True
 
-        self.article = Article(self.url, config=config)
-        self.article.download()
-        self.article.parse()
-        self.article.fetch_images()
+        if self.url:
+            self.article = Article(self.url, config=config)
+            self.article.download()
+            self.article.parse()
+            self.article.fetch_images()
+        else:
+            # Hack passed HTML into Newspaper
+            self.article = Article('file://')
+            self.article.article_html = self.html
+            self.article.title = self.title
+            self.article.download(input_html=self.html)
+            self.article.parse()
+            self.article.fetch_images()
 
     def __dump_images(self, tmp_dir):
         """Write images to the supplied temporary directory.
@@ -107,14 +119,17 @@ class EmailWebpage:
             mobi generation and source images
         :return:
         """
+        article_html = self.article.article_html
+        article_title = self.article.title
+
         # Add HTML tags to make a valid HTML doc
         html_file = f"""<html>
                 <head>
-                    <title>{self.article.title}</title>
+                    <title>{article_title}</title>
                     <meta http-equiv="Content-Type"
                         content="text/html; charset=UTF-8" />
                 </head>
-                <body><h1>{self.article.title}</h1>{self.article.article_html}{self.append_html}</body>
+                <body><h1>{article_title}</h1>{article_html}{self.append_html}</body>
             </html>"""
 
         """
@@ -152,6 +167,7 @@ class EmailWebpage:
             message.attach(part2)
 
         message["Subject"] = self.article.title
+
         message["From"] = self.smtp['email']
         message["To"] = self.email
 
