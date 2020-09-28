@@ -2,7 +2,8 @@
 import os
 
 import redis
-from rq import Worker, Queue, Connection
+
+from rq import Connection, Queue, Worker
 
 listen = ['default']
 

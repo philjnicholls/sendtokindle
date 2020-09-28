@@ -1,6 +1,6 @@
 -r common.txt
 pip-chill==1.0.0
-pudb==2019.2
+pudb
 pygithub==1.53
 pytest-coverage==0.0
 pytest-flake8==1.0.6

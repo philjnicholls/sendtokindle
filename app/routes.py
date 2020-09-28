@@ -1,33 +1,6 @@
-"""Handle routes for web front-end and API."""
-import smtplib
-import ssl
-import configparser
-import os
-import requests
+"""
+Handle routes for web front-end and API.
 
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from flask import request
-from flask import jsonify
-from flask import render_template
-from flask import url_for
-from flask import redirect
-from uuid import uuid4
-from requests.exceptions import RequestException
-from app.EmailWebpage import EmailWebpage
-from github import Github
-from urllib.parse import urlparse
-
-from app import app
-from app import db
-from app import q
-from app.models import User
-from app.forms import RegisterForm
-from app.forms import ReportArticleForm
-from app.extensions import csrf
-from app.config import BASE_DIR
-
-'''
 __author__ = "Phil Nicholls"
 __copyright__ = "Copyright 2020, Phil Nicholls"
 __credits__ = ["Phil Nicholls"]
@@ -36,13 +9,36 @@ __version__ = "0.1.0"
 __maintainer__ = "Phil Nicholls"
 __email__ = "phil.j.nicholls@gmail.com"
 __status__ = "Development"
-__tests__ = ["pep8", "todo"]
+"""
+import configparser
+import os
+import smtplib
+import ssl
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from urllib.parse import urlparse
+from uuid import uuid4
 
-Takes a URL, beautifies the content and sends it on to
-a Kindle for easy reading on the eyes.
+from app import app
+from app import db
+from app import q
+from app.EmailWebpage import EmailWebpage
+from app.config import BASE_DIR
+from app.extensions import csrf
+from app.forms import RegisterForm
+from app.forms import ReportArticleForm
+from app.models import User
 
-Runs as a Flask REST API on a web server of your choice
-'''
+from flask import jsonify
+from flask import redirect
+from flask import render_template
+from flask import request
+from flask import url_for
+
+from github import Github
+
+import requests
+from requests.exceptions import RequestException
 
 if not app.debug:
     @app.errorhandler(Exception)
@@ -51,7 +47,7 @@ if not app.debug:
 
         Try to send back a nice HTTP header and JSON response
         :param error: The error that has been raised
-        :return:
+        :return: Json API response
         """
         message = [str(x) for x in error.args]
 
@@ -89,7 +85,6 @@ def send_email(to_email,
     :param subject: Email subject
     :param html: HTML body for the email
     :param plain_text: Plain text body for the email
-    :return:
     """
     config = get_config()
 
@@ -128,6 +123,7 @@ def get_config():
     """Get application configuration from rc file.
 
     :return: A config object
+    :raises RequestException: Missing configuration file
     """
     if os.path.exists(os.path.join(BASE_DIR, '.sendtokindle.rc')):
         config = configparser.ConfigParser()
@@ -143,9 +139,8 @@ def process_and_send_page(email, url, html, title, report_url):
     :param email: Recipient of the mobi file
     :param url: The URL to convert to a mobi
     :param html: HTML content for the mobi
-    :param report_url:URL to use for the link inserted into
-    the mobi for reporting issues with article
-    :return:
+    :param title: Title for mobi
+    :param report_url: URL to bad article report form
     """
     config = get_config()
 
@@ -175,7 +170,8 @@ def process_and_send_page(email, url, html, title, report_url):
 def send_page_to_kindle():
     """Public api to send webpage to kindle.
 
-    :return:
+    :return: Json success response
+    :raises RequestException: API errors
     """
     # If no URL is specified, raise an errorException
     if 'url' not in request.values and 'html' not in request.values:
@@ -229,7 +225,8 @@ def send_page_to_kindle():
 def verify():
     """Verify email ownership with email_token.
 
-    :return: Response confirming verification or RequestException
+    :return: Response confirming verification
+    :raises RequestException: API error
     """
     user = User.query.filter_by(email=request.values['email'],
                                 email_token=request.values['token']).first()
@@ -267,10 +264,10 @@ def home():
     form = RegisterForm()
 
     if form.validate_on_submit():
-        '''
+        """
         Generate a new token for new users or create
         a new token for existing users
-        '''
+        """
         user = User.query.filter_by(email=form.email.data).first()
         if user is None:
             user = User(email=form.email.data,

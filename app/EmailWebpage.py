@@ -1,17 +1,18 @@
 """Class to support emailing of a webpage."""
 
-import tempfile
-import ssl
-import smtplib
-import re
 import os
-import requests
-
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from newspaper import Article, Config
+import re
+import smtplib
+import ssl
+import tempfile
 from email import encoders
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from newspaper import Article, Config
+
+import requests
 
 
 class NoArticleHTMLException(Exception):
@@ -37,6 +38,15 @@ class EmailWebpage:
 
         :param email: email to send mobi turlo
         :param url: url to convert to mobi
+        :param html: raw html to use for mobi
+        :param title: title to use for the mobi
+        :param smtp_user: SMTP server username
+        :param smtp_email: SMTP server from address
+        :param smtp_password: SMTP server password
+        :param smtp_host: SMTP server host
+        :param smtp_port: SMTP server port number
+        :param kindlegen_path: Full path to the kindlegen binary
+        :param append_html: raw HTML to append to the end of the mobi
         """
         self.email = email
         self.url = url
@@ -55,7 +65,7 @@ class EmailWebpage:
     def send(self):
         """Get the webpage, convert to mobi and email.
 
-        :return:
+        :raises NoArticleHTMLException: no article found
         """
         self.__get_page()
         if (self.article and self.article.article_html):
@@ -67,10 +77,7 @@ class EmailWebpage:
                                          f'for {self.url}')
 
     def __get_page(self):
-        """Download the page and parse.
-
-        :return:
-        """
+        """Download the page and parse."""
         # Setup some config for newspaper
         config = Config()
         config.keep_article_html = True
@@ -96,7 +103,6 @@ class EmailWebpage:
         Ready for kindlgen to pick up
 
         :param tmp_dir: open temporary directory to store the images
-        :return:
         """
         for image in self.article.images:
             os.makedirs(os.path.join(tmp_dir,
@@ -117,7 +123,6 @@ class EmailWebpage:
 
         :param tmp_dir: Currently open directory to use for
             mobi generation and source images
-        :return:
         """
         article_html = self.article.article_html
         article_title = self.article.title
@@ -155,7 +160,6 @@ class EmailWebpage:
 
         :param attachment_title: Name of the file attachment
         :param attachment_path: Path to the attachment
-        :return:
         """
         message = MIMEMultipart("alternative")
 
