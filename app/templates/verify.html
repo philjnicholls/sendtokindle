@@ -32,7 +32,7 @@
            var article = new Readability(uri, document).parse();
 
           Http.open('POST', '{{ request.url_root }}api', true);
-           Http.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+           Http.setRequestHeader('Content-Type', 'application/json');
            Http.onreadystatechange = function() {
              if (Http.readyState === 4 && Http.status === 200) {
                var json = JSON.parse(Http.responseText);
@@ -44,8 +44,14 @@
              }
            };
            try {
-           Http.send('token={{ context.api_token }}&html=' + article.content + '&title=' + article.title);
-           } catch (err) {
+
+            Http.send(JSON.stringify({
+              token: '{{ context.api_token }}',
+              html: article.content,
+              title:
+              article.title
+            }));
+            } catch (err) {
              alert('Oops, something went wrong sending to kindle, sorry about that <3.');
            }
          });

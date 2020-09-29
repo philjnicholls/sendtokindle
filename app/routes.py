@@ -173,14 +173,13 @@ def send_page_to_kindle():
     :return: Json success response
     :raises RequestException: API errors
     """
-    # If no URL is specified, raise an errorException
-    if 'url' not in request.values and 'html' not in request.values:
+    if 'url' not in request.json and 'html' not in request.json:
         raise RequestException('Missing parameter "url" or "html".', 400)
 
-    if 'token' not in request.values:
+    if 'token' not in request.json:
         raise RequestException('Missing parameter "token".', 400)
 
-    user = User.query.filter_by(api_token=request.values['token']).first()
+    user = User.query.filter_by(api_token=request.json['token']).first()
 
     if not user:
         raise RequestException('No matching token found.', 401)
@@ -188,32 +187,32 @@ def send_page_to_kindle():
     if not user.verified:
         raise RequestException('You have not verified your email adress.', 401)
 
-    if request.values.get('url', None):
+    if request.json.get('url', None):
         # Will raise exception is page doesn't exist or there's a problem
-        requests.get(request.values['url'], allow_redirects=True)
+        requests.get(request.json['url'], allow_redirects=True)
 
     bad_article_url = url_for('report_bad_article')
-    if 'url' in request.values:
+    if 'url' in request.json:
         report_url = (f'{request.host_url}{bad_article_url}?'
-                      f'url={request.values["url"]}&email={user.email}')
+                      f'url={request.json["url"]}&email={user.email}')
     else:
         report_url = (f'{request.host_url}{bad_article_url}?'
-                      f'title={request.values["title"]}&email={user.email}')
+                      f'title={request.json["title"]}&email={user.email}')
 
     if app.debug:
         # If we're debugging then skip the queue to make life easier
         process_and_send_page(email=user.kindle_email,
-                              url=request.values.get('url', None),
-                              html=request.values.get('html', None),
-                              title=request.values.get('title', None),
+                              url=request.json.get('url', None),
+                              html=request.json.get('html', None),
+                              title=request.json.get('title', None),
                               report_url=report_url)
     else:
         q.enqueue_call(
             func=process_and_send_page,
             args=(user.kindle_email,
-                  request.values.get('url', None),
-                  request.values.get('html', None),
-                  request.values.get('title', None),
+                  request.json.get('url', None),
+                  request.json.get('html', None),
+                  request.json.get('title', None),
                   report_url),
             result_ttl=5000
         )
