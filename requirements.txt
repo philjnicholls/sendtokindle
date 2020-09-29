@@ -1,2 +1,2 @@
 -r requirements/production.txt
-django
+-r requirements/test.txt
