@@ -16,48 +16,47 @@
         {% endfor %}
     {% endif %}
     <p>Drag this link into your bookmarks <a href="
-       javascript: (function() {
-         const Http = new XMLHttpRequest();
-         var jsCode = document.createElement('script');
-         jsCode.setAttribute('src', 'https://cdn.rawgit.com/mozilla/readability/8525c6af/Readability.js');
-         window.cleanHtml = (function() {
-           var loc = document.location;
-           var uri = {
-             spec: loc.href,
-             host: loc.host,
-             prePath: loc.protocol + '//' + loc.host,
-             scheme: loc.protocol.substr(0, loc.protocol.indexOf(':')),
-             pathBase: loc.protocol + '//' + loc.host + loc.pathname.substr(0, loc.pathname.lastIndexOf('/') + 1)
-           };
-           var article = new Readability(uri, document).parse();
-
-          Http.open('POST', '{{ request.url_root }}api', true);
-           Http.setRequestHeader('Content-Type', 'application/json');
-           Http.onreadystatechange = function() {
-             if (Http.readyState === 4 && Http.status === 200) {
-               var json = JSON.parse(Http.responseText);
-                 if (json.success) {
-                 alert('Sent to kindle :)');
-               } else {
-                 alert('Failed to send to kindle :(');
-               }
-             }
-           };
-           try {
-
+javascript: (function() {
+    const Http = new XMLHttpRequest();
+    var jsCode = document.createElement('script');
+    jsCode.setAttribute('src', 'https://cdn.rawgit.com/mozilla/readability/8525c6af/Readability.js');
+    window.cleanHtml = (function() {
+        var loc = document.location;
+        var uri = {
+            spec: loc.href,
+            host: loc.host,
+            prePath: loc.protocol + '//' + loc.host,
+            scheme: loc.protocol.substr(0, loc.protocol.indexOf(':')),
+            pathBase: loc.protocol + '//' + loc.host + loc.pathname.substr(0, loc.pathname.lastIndexOf('/') + 1)
+        };
+        var article = new Readability(uri, document.cloneNode(true)).parse();
+        console.log(article);
+        Http.open('POST', '{{ request.url_root }}api', true);
+        Http.setRequestHeader('Content-Type', 'application/json');
+        Http.onreadystatechange = function() {
+            if (Http.readyState === 4 && Http.status === 200) {
+                var json = JSON.parse(Http.responseText);
+                if (json.success) {
+                    alert('Sent to kindle :)');
+                } else {
+                    alert('Failed to send to kindle :(');
+                }
+            }
+        };
+        try {
             Http.send(JSON.stringify({
-              token: '{{ context.api_token }}',
-              html: article.content,
-              title:
-              article.title
+                token: '{{ context.api_token }}',
+                html: article.content,
+                title: article.title
             }));
-            } catch (err) {
-             alert('Oops, something went wrong sending to kindle, sorry about that <3.');
-           }
-         });
-       jsCode.onload = cleanHtml;
-       document.body.appendChild(jsCode);
-       })()
+        } catch (err) {
+            alert('Oops, something went wrong sending to kindle, sorry about that <3.');
+        }
+    });
+    jsCode.onload = cleanHtml;
+    document.body.appendChild(jsCode);
+})()
+
       ">Send To Kindle</a></p>
         <p>When you want to send a webpage to your Kindle just click the bookmark.</p>
 {% endblock %}
