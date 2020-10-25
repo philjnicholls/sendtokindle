@@ -275,8 +275,8 @@ def home():
         else:
             user.verified = False
             user.kindle_email = form.kindle_email.data
-            user.email_token = uuid4()
-            user.api_token = uuid4()
+            user.email_token = str(uuid4())
+            user.api_token = str(uuid4())
         db.session.commit()
 
         # Send email to validate email

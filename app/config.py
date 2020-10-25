@@ -18,8 +18,5 @@ class Config(object):
         raise requests.exceptions.RequestException('Missing database config.',
                                                    404)
 
-    SQLALCHEMY_DATABASE_URI = (f'mysql://{config["MySQL"]["user"]}:'
-                               f'{config["MySQL"]["password"]}@'
-                               f'{config["MySQL"]["host"]}/'
-                               f'{config["MySQL"]["database"]}')
+    SQLALCHEMY_DATABASE_URI = (f'sqlite:///sendtokindle.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
