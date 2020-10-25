@@ -55,12 +55,12 @@ if not app.debug:
         try:
             status_code = str(int(error.strerror))
         except AttributeError:
-            status_code = '500'
+            status_code = '500 '
         except TypeError:
-            status_code = 500
+            status_code = '500 '
 
         if not status_code:
-            status_code = '500'
+            status_code = '500 '
 
         success = False
         response = {
