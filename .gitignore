@@ -145,3 +145,6 @@ venv
 
 # Coverage
 .coverage
+
+# SQLite databases
+*.db
