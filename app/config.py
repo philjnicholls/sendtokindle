@@ -1,7 +1,8 @@
 """Configuration for the application."""
-import os
-import requests
 import configparser
+import os
+
+import requests
 
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -18,5 +19,5 @@ class Config(object):
         raise requests.exceptions.RequestException('Missing database config.',
                                                    404)
 
-    SQLALCHEMY_DATABASE_URI = (f'sqlite:///sendtokindle.db')
+    SQLALCHEMY_DATABASE_URI = ('sqlite:///sendtokindle.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
