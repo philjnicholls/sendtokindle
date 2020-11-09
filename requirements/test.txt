@@ -1,7 +1,6 @@
 -r common.txt
 pytest
 pip-chill==1.0.0
-pygithub==1.53
 pytest-coverage==0.0
 pytest-flake8==1.0.6
 pytest-sugar==0.9.4
