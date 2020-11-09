@@ -18,7 +18,7 @@ test:
 	FLASK_DEBUG=0 pytest --flake8 --cov --cov-report term-missing
 
 serve_website:
-	flask run
+	flask run --cert=adhoc
 
 serve_queue:
 	python worker.py
