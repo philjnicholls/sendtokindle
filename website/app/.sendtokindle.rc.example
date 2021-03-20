@@ -1,0 +1,17 @@
+[SMTP]
+USERNAME=
+EMAIL=
+PASSWORD=
+HOST=
+PORT=
+
+[MySQL]
+host =
+database =
+user =
+password =
+
+[GitHub]
+ACCESS_TOKEN=
+REPO_OWNER=
+REPO_NAME=

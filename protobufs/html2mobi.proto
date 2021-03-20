@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+import "articlescrape.proto";
+
+message MOBI {
+    bytes file = 1;
+}
+
+service HTML2MOBI {
+    rpc Convert (Article) returns (MOBI);
+}

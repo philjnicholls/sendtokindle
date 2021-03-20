@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message Article {
+    string title = 1;
+    string content = 2;
+}
+
+message ScrapeRequest {
+    string url = 1;
+}
+
+service ArticleScrape {
+    rpc Scrape (ScrapeRequest) returns (Article);
+}

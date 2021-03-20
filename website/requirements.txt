@@ -1,0 +1,13 @@
+grpcio-tools
+flask
+flask_wtf
+flask_sqlalchemy
+flask_migrate
+flask_cors
+email_validator
+Jinja2
+requests
+psycopg2
+redis
+rq
+python-dotenv

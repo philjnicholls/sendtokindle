@@ -1,0 +1,101 @@
+version: "3"
+services:
+
+  email:
+    build:
+      context: .
+      dockerfile: email/Dockerfile
+    environment:
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+    image: email
+    networks:
+      - sendtokindle
+
+  articlescrape:
+    build:
+      context: .
+      dockerfile: articlescrape/Dockerfile
+    depends_on:
+      - "selenium"
+    environment:
+      SELENIUM_HOST: http://selenium:4444/wd/hub
+    image: articlescrape
+    networks:
+      - sendtokindle
+
+  html2mobi:
+    build:
+      context: .
+      dockerfile: html2mobi/Dockerfile
+    environment:
+      KINDLEGEN: /service/html2mobi/kindlegen
+    image: html2mobi
+    networks:
+      - sendtokindle
+
+  selenium:
+    image: selenium
+    image: selenium/standalone-chrome
+    hostname: selenium
+    ports:
+      - 4444:4444
+    networks:
+      - sendtokindle
+
+  website:
+    build:
+      context: .
+      dockerfile: website/Dockerfile
+    depends_on:
+      - "redis"
+      - "email"
+    environment:
+      DATABASE_URI: ${DATABASE_URI}
+      EMAIL_HOST: email:50051
+      REDIS_HOST: redis://redis:6379
+    image: website 
+    networks:
+      - sendtokindle
+    ports:
+      - 3031:3031
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    depends_on:
+      - "redis"
+      - "articlescrape"
+      - "email"
+      - "html2mobi"
+    environment:
+      ARTICLESCRAPE_HOST: articlescrape:50051
+      EMAIL_HOST: email:50051
+      HTML2MOBI_HOST: html2mobi:50051
+      REDIS_HOST: redis:6379
+    image: worker
+    networks:
+      - sendtokindle
+
+  redis:
+    image: redis:6-alpine
+    networks:
+      - sendtokindle
+
+  nginx:
+    build:
+      context: .
+      dockerfile: website/nginx.Dockerfile
+    depends_on:
+      - "website"
+    image: nginx
+    networks:
+      - sendtokindle
+    ports:
+      - 80:80
+
+networks:
+  sendtokindle:

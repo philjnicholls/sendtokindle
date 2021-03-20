@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% if request.values['email_sent'] %}
+        Email sent to {{ request.values['email_sent'] }}, check your email, click the link and enjoy.
+    {% else %}
+        <form action="{{ url_for('home') }}" method="post">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                  {% if form.email.errors %}
+                    {{ form.email(class_="form-control is-invalid") }}
+                      {% for error in form.email.errors %}
+                        <div class="invalid-feedback">
+                          {{ error }}
+                        </div>
+                      {% endfor %}
+                    {% else %}
+                        {{ form.email(class_="form-control") }}
+                  {% endif %}
+                </div>
+                <div class="form-group">
+                  {% if form.kindle_email.errors %}
+                    {{ form.kindle_email(class_="form-control is-invalid") }}
+                      {% for error in form.kindle_email.errors %}
+                        <div class="invalid-feedback">
+                          {{ error }}
+                        </div>
+                      {% endfor %}
+                    {% else %}
+                        {{ form.kindle_email(class_="form-control") }}
+                  {% endif %}
+                </div>
+                {{ form.submit(class_="btn btn-primary btn-large btn-block") }}
+        </form>
+    {% endif %}
+{% endblock %}

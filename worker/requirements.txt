@@ -1,0 +1,4 @@
+grpcio-tools
+redis
+rq
+python-dotenv

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+message EmailMessage {
+    repeated EmailAddress to = 1;
+    EmailAddress sender = 2;
+    string subject = 3;
+    string body_text = 4;
+    string body_html = 5;
+    repeated Attachment attachments = 6;
+}
+
+message EmailResponse {
+    string response = 1;
+}
+
+message EmailAddress {
+    string email = 1;
+    string name = 2;
+}
+
+message Attachment {
+    bytes file = 1;
+    string name = 2;
+}
+
+service Email {
+    rpc Send (EmailMessage) returns (EmailResponse);
+}

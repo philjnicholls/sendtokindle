@@ -1,0 +1,7 @@
+grpcio-tools
+requests
+readability-lxml
+grpc-interceptor
+selenium
+breadability
+python-dotenv
