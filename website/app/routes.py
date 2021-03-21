@@ -10,11 +10,9 @@ __maintainer__ = "Phil Nicholls"
 __email__ = "phil.j.nicholls@gmail.com"
 __status__ = "Development"
 """
-import configparser
 import os
 import grpc
 
-from urllib.parse import urlparse
 from uuid import uuid4
 
 from app import app
@@ -22,7 +20,6 @@ from app import db
 from app import q
 from app.extensions import csrf
 from app.forms import RegisterForm
-from app.forms import ReportArticleForm
 from app.models import User
 
 from flask import jsonify
@@ -31,8 +28,8 @@ from flask import render_template
 from flask import request
 from flask import url_for
 
-from email_pb2 import EmailMessage, EmailAddress, Attachment
 from email_pb2_grpc import EmailStub
+from email_pb2 import EmailMessage, EmailAddress
 
 import requests
 from requests.exceptions import RequestException
@@ -111,7 +108,7 @@ def send_page_to_kindle():
         # Will raise exception is page doesn't exist or there's a problem
         requests.get(url, allow_redirects=True)
 
-    job = q.enqueue_call(
+    q.enqueue_call(
         func=scrape_and_send, args=(url, user.kindle_email), result_ttl=5000
     )
 
@@ -187,19 +184,20 @@ def home():
             sender=EmailAddress(email='phil.j.nicholls@gmail.com'),
             subject='Verify your email address',
             body_text=(f'Click the link to verify your email address '
-                               f'and get instructions on how to start sending '
-                               f'web pages to your Kindle.'
-                               f'{request.url_root}verify?token='
-                               f'{user.email_token}&email={user.email}'),
+                       f'and get instructions on how to start sending '
+                       f'web pages to your Kindle.'
+                       f'{request.url_root}verify?token='
+                       f'{user.email_token}&email={user.email}'),
             body_html=(f'<p><a href="{request.url_root}verify?token='
-                         f'{user.email_token}&email={user.email}">'
-                         f'Click here</a> to verify your email address '
-                         f'and get instructions on how to start sending '
-                         f'web pages to your Kindle.</p>')
+                       f'{user.email_token}&email={user.email}">'
+                       f'Click here</a> to verify your email address '
+                       f'and get instructions on how to start sending '
+                       f'web pages to your Kindle.</p>')
         )
         response = email_client.Send(
             message
         )
+        breakpoint()
 
         return redirect(url_for('home') + '?email_sent=' + user.email)
 

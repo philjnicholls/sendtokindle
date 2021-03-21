@@ -30,14 +30,17 @@ class ArticleScrapeService(
         doc = ReadableArticle(driver.page_source, url=request.url)
 
         def image_to_data_uri(image_src):
+            # Ignore existing data URIs
             if image_src[0:5] == 'data:':
                 return image_src
 
+            # Use mime type from response headers
             response = requests.get(image_src)
             if 'Content-Type' in response.headers:
                 mime_type = response.headers['Content-Type']
             else:
                 mime_type = 'image/png'
+
             image_bytes = BytesIO(response.content)
             base64_image = base64.b64encode(image_bytes.read()).decode()
             return f'data:{mime_type};base64,{base64_image}'
@@ -54,14 +57,9 @@ class ArticleScrapeService(
 
         match = re.search(r'<title.*?>(.+?)</title>', driver.page_source,
                           re.IGNORECASE)
-        if match:
-            title = match.group(1)
-        else:
-            title = 'Web Article'
+        title = match.group(1) if match else 'Web Article'
 
-
-        return Article(
-            title=title, content=content)
+        return Article(title=title, content=content)
 
 
 def _new_driver():

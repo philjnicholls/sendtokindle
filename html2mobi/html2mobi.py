@@ -55,6 +55,7 @@ class HTML2MOBIService(
         os.remove(mobi_path)
         return MOBI(file=mobi)
 
+
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10),

@@ -1,20 +1,18 @@
-from signal import signal, SIGTERM
-from grpc_interceptor import ExceptionToStatusInterceptor
-from grpc_interceptor.exceptions import InvalidArgument
-
-from concurrent import futures
-
+import email_pb2_grpc
 import grpc
 import os
 import re
 import smtplib
 import ssl
 
+from signal import signal, SIGTERM
+from grpc_interceptor import ExceptionToStatusInterceptor
+from grpc_interceptor.exceptions import InvalidArgument
 
-from email_pb2 import (
-    EmailMessage,
-    EmailResponse,
-)
+from concurrent import futures
+
+from email_pb2 import EmailMessage, EmailResponse
+
 from email import encoders
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -22,7 +20,6 @@ from email.mime.text import MIMEText
 
 from dotenv import load_dotenv
 
-import email_pb2_grpc
 
 class EmailService(
     email_pb2_grpc.EmailServicer
@@ -74,7 +71,7 @@ class EmailService(
 
             p.add_header(
                 'Content-Disposition',
-                f'attachment; filename= {name_stripped}')
+                f'attachment; filename={name_stripped}')
 
             message.attach(p)
 
@@ -84,7 +81,9 @@ class EmailService(
                               context=context) as server:
             server.login(smtp_username, smtp_password)
             server.sendmail(
-                sender.email, ','.join([recipient.email for recipient in to]), message.as_string()
+                sender.email,
+                ','.join([recipient.email for recipient in to]),
+                message.as_string()
             )
 
         return EmailResponse(

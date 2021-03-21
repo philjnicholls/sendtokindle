@@ -17,14 +17,3 @@ class RegisterForm(FlaskForm):
         DataRequired()],
         render_kw={'placeholder': 'Kindle email'})
     submit = SubmitField('Register')
-
-
-class ReportArticleForm(FlaskForm):
-    """Form to send reports fo bad articles."""
-
-    comment = StringField('Comments',
-                          render_kw={'placeholder': 'Comments'}
-                          )
-    email = HiddenField()
-    url = HiddenField()
-    submit = SubmitField('Send Report')

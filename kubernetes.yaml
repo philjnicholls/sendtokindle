@@ -1,0 +1,243 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: website
+    labels:
+        app: website
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: website
+    template:
+        metadata:
+            labels:
+                app: website
+        spec:
+            containers:
+                - name: website
+                  image: philjnicholls/sendtokindle:website
+                  env:
+                      - name: EMAIL_HOST
+                        value: "email:50051"
+                      - name: DATABASE_URI
+                        value: "postgresql://sendtokindle:SEMan4n@@database/sendtokindle"
+                      - name: REDIS_HOST
+                        value: "redis:6379"
+            imagePullSecrets:
+                - name: regcred
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: email
+    labels:
+        app: email
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: email
+    template:
+        metadata:
+            labels:
+                app: email
+        spec:
+            containers:
+                - name: email
+                  image: philjnicholls/sendtokindle:email
+                  env:
+                      - name: SMTP_PASSWORD
+                        value: "kdjoecegdpelnwcs"
+                      - name: SMTP_HOST
+                        value: "smtp.gmail.com"
+                      - name: SMTP_USERNAME
+                        value: "phil.j.nicholls@gmail.com"
+                      - name: SMTP_PORT
+                        value: "465"
+            imagePullSecrets:
+                - name: regcred
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: articlescrape
+    labels:
+        app: articlescrape
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: articlescrape
+    template:
+        metadata:
+            labels:
+                app: articlescrape
+        spec:
+            containers:
+                - name: articlescrape
+                  image: philjnicholls/sendtokindle:articlescrape
+            imagePullSecrets:
+                - name: regcred
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: html2mobi
+    labels:
+        app: html2mobi
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: html2mobi
+    template:
+        metadata:
+            labels:
+                app: html2mobi
+        spec:
+            containers:
+                - name: html2mobi
+                  image: philjnicholls/sendtokindle:html2mobi
+            imagePullSecrets:
+                - name: regcred
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: selenium
+    labels:
+        app: selenium
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: selenium
+    template:
+        metadata:
+            labels:
+                app: selenium
+        spec:
+            containers:
+                - name: selenium
+                  image: selenium
+                  image: selenium/standalone-chrome
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: redis
+    labels:
+        app: redis
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: redis
+    template:
+        metadata:
+            labels:
+                app: redis
+        spec:
+            containers:
+                - name: redis
+                  image: redis:6-alpine
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: articlescrape
+spec:
+    selector:
+        app: articlescrape
+    ports:
+        - protocol: TCP
+          port: 50051
+          targetPort: 50051
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: html2mobi
+spec:
+    selector:
+        app: html2mobi
+    ports:
+        - protocol: TCP
+          port: 50051
+          targetPort: 50051
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: email
+spec:
+    selector:
+        app: email
+    ports:
+        - protocol: TCP
+          port: 50051
+          targetPort: 50051
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: worker
+spec:
+  template:
+    spec:
+      containers:
+			- name: worker
+				image: philjnicholls/sendtokindle:worker
+				command: ["python",  "worker.py"]
+				env:
+						- name: EMAIL_HOST
+							value: "email:50051"
+						- name: ARTICLESCRAPE_HOST
+							value: "articlescrape:50051"
+						- name: HTML2MOBI_HOST
+							value: "html2mobi:50051"
+						- name: REDIS_HOST
+							value: "redis:6379"
+			imagePullSecrets:
+				- name: regcred
+      restartPolicy: Never
+  backoffLimit: 4
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: website
+spec:
+    type: LoadBalancer
+    selector:
+        app: website
+    ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: selenium
+spec:
+    selector:
+        app: selenium
+    ports:
+        - protocol: TCP
+          port: 4444
+          targetPort: 4444
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: redis
+spec:
+    selector:
+        app: redis
+    ports:
+        - protocol: TCP
+          port: 6379
+          targetPort: 6379
